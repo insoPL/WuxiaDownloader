@@ -7,10 +7,10 @@ from bs4 import BeautifulSoup
 class DownloaderThread(QThread):
     end_of_download = pyqtSignal()
     new_chapter = pyqtSignal(str, str)
+    cover_retrived = pyqtSignal()
 
-    def __init__(self, url, progress_bar):
+    def __init__(self, url):
         self.base_url = url
-        self.progress_bar = progress_bar
         self.running = True
         QThread.__init__(self)
 
@@ -18,12 +18,15 @@ class DownloaderThread(QThread):
         page = requests.get(self.base_url)
         soup = BeautifulSoup(page.content, 'html.parser')
 
+        self.book_title = soup.find('h4').get_text()
+
         chapter_url_list = soup.find_all('li', class_='chapter-item')
 
         chapter_url_list = [chapter.a.get("href") for chapter in chapter_url_list]
 
-        self.progress_bar.setMaximum(len(chapter_url_list))
-        progress_bar_counter = 1
+        self.limit = len(chapter_url_list)
+
+        self.cover_retrived.emit()
 
         for chapter_url in chapter_url_list:
             try:
@@ -32,9 +35,6 @@ class DownloaderThread(QThread):
                 self.end_of_download.emit()
                 return
             self.new_chapter.emit(name, text)
-
-            progress_bar_counter += 1
-            self.progress_bar.setValue(progress_bar_counter)
 
             if not self.running:
                 self.end_of_download.emit()

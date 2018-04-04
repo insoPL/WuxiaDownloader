@@ -4,14 +4,14 @@ import os
 
 
 class BookEpub:
-    def __init__(self):
+    def __init__(self, title):
         self.book_content = epub.EpubBook()
         self.chapters = list()
         self.isOpen = True
     
         # set metadata
-        self.book_content.set_identifier('against-the-gods')
-        self.book_content.set_title('Against The Gods')
+        self.book_content.set_identifier(title.lower().replace(" ","-"))
+        self.book_content.set_title(title)
         self.book_content.set_language('en')
     
         self.book_content.add_author('Mars Gravity')
