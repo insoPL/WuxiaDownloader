@@ -72,8 +72,11 @@
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
        <widget class="QPushButton" name="abort_button">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="text">
-         <string>Abort</string>
+         <string>End</string>
         </property>
        </widget>
       </item>

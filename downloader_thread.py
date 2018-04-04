@@ -6,22 +6,36 @@ from bs4 import BeautifulSoup
 
 class DownloaderThread(QThread):
     end_of_download = pyqtSignal()
-    new_chapter = pyqtSignal(str, str, int)
+    new_chapter = pyqtSignal(str, str)
 
-    def __init__(self, url, limit):
+    def __init__(self, url, progress_bar):
         self.base_url = url
-        self.limit = limit
+        self.progress_bar = progress_bar
         self.running = True
         QThread.__init__(self)
 
     def run(self):
-        for i in range(self.limit):
+        page = requests.get(self.base_url)
+        soup = BeautifulSoup(page.content, 'html.parser')
+
+        chapter_url_list = soup.find_all('li', class_='chapter-item')
+
+        chapter_url_list = [chapter.a.get("href") for chapter in chapter_url_list]
+
+        self.progress_bar.setMaximum(len(chapter_url_list))
+        progress_bar_counter = 1
+
+        for chapter_url in chapter_url_list:
             try:
-                name, text = _download_and_parse(self.base_url+str(i))
+                name, text = _download_and_parse("https://www.wuxiaworld.com"+chapter_url)
             except EOFError:
                 self.end_of_download.emit()
                 return
-            self.new_chapter.emit(name, text, i)
+            self.new_chapter.emit(name, text)
+
+            progress_bar_counter += 1
+            self.progress_bar.setValue(progress_bar_counter)
+
             if not self.running:
                 self.end_of_download.emit()
                 return
