@@ -33,7 +33,7 @@ class BookEpub:
         self.book_content.add_item(nav_css)
     
         # basic spine
-        self.book_content.spine = ['nav', self.chapters[0]]
+        self.book_content.spine = ['nav', *self.chapters]
     
         # write to the file
         epub.write_epub('AgainstTheGods.epub', self.book_content, {})
