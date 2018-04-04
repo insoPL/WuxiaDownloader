@@ -38,15 +38,9 @@ class BookEpub:
         # write to the file
         epub.write_epub('AgainstTheGods.epub', self.book_content, {})
     
-    def add_chapter(self, name, *texts):
-        # create chapter
-        chapter = epub.EpubHtml(title=name, file_name='chapter_'+str(len(self.chapters)+1)+'.xhtml', lang='en')
+    def add_chapter(self, title, text):
+        chapter = epub.EpubHtml(title=title, file_name='chapter_' + str(len(self.chapters) + 1) + '.xhtml', lang='en')
 
-        content = ''
-        for text in texts:
-            content += '<p>'+text+'</p>'
+        chapter.content = u'<h1>' + title + '</h1>'+text
 
-        chapter.content = u'<h1>'+name+'</h1>'+content
-    
-        # add chapter
         self.chapters.append(chapter)
