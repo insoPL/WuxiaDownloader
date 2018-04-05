@@ -59,14 +59,48 @@
      </layout>
     </item>
     <item>
-     <widget class="QTextEdit" name="log">
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-      <property name="acceptRichText">
-       <bool>true</bool>
-      </property>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="QTextEdit" name="log">
+        <property name="layoutDirection">
+         <enum>Qt::LeftToRight</enum>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="acceptRichText">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QLabel" name="book_cover">
+          <property name="autoFillBackground">
+           <bool>true</bool>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="pixmap">
+           <pixmap>default_cover.jpg</pixmap>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="book_info">
+          <property name="text">
+           <string>There is currently no book loaded</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -105,6 +139,7 @@
      <string>File</string>
     </property>
     <addaction name="actionSave_as"/>
+    <addaction name="actionopen_epub_file"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -118,6 +153,11 @@
    </property>
    <property name="text">
     <string>Save as epub file</string>
+   </property>
+  </action>
+  <action name="actionopen_epub_file">
+   <property name="text">
+    <string>Open epub file</string>
    </property>
   </action>
  </widget>

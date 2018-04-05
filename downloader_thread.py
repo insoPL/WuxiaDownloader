@@ -7,20 +7,21 @@ from bs4 import BeautifulSoup
 class DownloaderThread(QThread):
     end_of_download = pyqtSignal()
     new_chapter = pyqtSignal(str, str)
-    cover_retrived = pyqtSignal()
+    cover_retrived = pyqtSignal(str)
 
-    def __init__(self, url):
+    def __init__(self, url, update_mode = False):
         self.base_url = url
         self.running = True
+        self.update_mode = update_mode
         QThread.__init__(self)
 
     def run(self):
         page = requests.get(self.base_url)
         soup = BeautifulSoup(page.content, 'html.parser')
 
-        self.book_title = soup.find('h4').get_text()
+        book_title = soup.find('h4').get_text()
 
-        # Cover download
+        # Cover download_button_pressed
         cover_img_url = "https://www.wuxiaworld.com"+soup.find('img', class_='media-object').get("src")
         response = requests.get(cover_img_url)
         if response.status_code == 200:
@@ -33,7 +34,10 @@ class DownloaderThread(QThread):
 
         self.limit = len(chapter_url_list)
 
-        self.cover_retrived.emit()
+        if self.update_mode:
+            chapter_url_list = chapter_url_list[::-1]
+
+        self.cover_retrived.emit(book_title)
 
         for chapter_url in chapter_url_list:
             try:
@@ -41,13 +45,18 @@ class DownloaderThread(QThread):
             except EOFError:
                 self.end_of_download.emit()
                 return
-            self.new_chapter.emit(name, text)
+
+            if "patreon" in name:
+                continue
 
             if not self.running:
                 self.end_of_download.emit()
                 return
+
+            self.new_chapter.emit(name, text)
+
         self.end_of_download.emit()
-        self.running=False
+        self.running = False
 
     def __del__(self):
         self.quit()

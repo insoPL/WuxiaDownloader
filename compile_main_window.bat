@@ -1,1 +1,1 @@
-pyuic5 mainwindow.ui >mainwindow.py
+pyuic5 mainwindow.ui > mainwindow.py
