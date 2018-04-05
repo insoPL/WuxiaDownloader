@@ -20,8 +20,6 @@ class AppWindow(QMainWindow):
         self.ui.abort_button.pressed.connect(self.abort_button)
         self.ui.novel_url.setText("https://www.wuxiaworld.com/novel/against-the-gods")
 
-        self.book=None
-
         self.show()
 
     def log(self, p_str):
@@ -44,6 +42,8 @@ class AppWindow(QMainWindow):
         self.ui.progress_bar.setMaximum(self.downloader_thread.limit)
         self.book = BookEpub(self.downloader_thread.book_title)
 
+
+
     def new_chapter_downloaded(self, title, text):
         self.progress_bar_counter += 1
         self.ui.progress_bar.setValue(self.progress_bar_counter)
@@ -51,7 +51,8 @@ class AppWindow(QMainWindow):
         self.book.add_chapter(title, text)
 
     def end_of_download(self):
-        self.log("Downloading ended")
+        self.log("Download ended")
+        self.log(self.book.status())
         self.ui.actionSave_as.setDisabled(False)
         self.ui.abort_button.setDisabled(True)
         self.ui.progress_bar.setValue(0)

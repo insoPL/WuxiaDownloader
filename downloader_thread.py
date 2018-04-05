@@ -20,6 +20,13 @@ class DownloaderThread(QThread):
 
         self.book_title = soup.find('h4').get_text()
 
+        # Cover download
+        cover_img_url = "https://www.wuxiaworld.com"+soup.find('img', class_='media-object').get("src")
+        response = requests.get(cover_img_url)
+        if response.status_code == 200:
+            with open("cover.png", 'wb') as f:
+                f.write(response.content)
+
         chapter_url_list = soup.find_all('li', class_='chapter-item')
 
         chapter_url_list = [chapter.a.get("href") for chapter in chapter_url_list]

@@ -13,9 +13,8 @@ class BookEpub:
         self.book_content.set_identifier(title.lower().replace(" ","-"))
         self.book_content.set_title(title)
         self.book_content.set_language('en')
-    
-        self.book_content.add_author('Mars Gravity')
-        self.book_content.add_author('Alyschu', uid='Translator')
+
+        self.book_content.set_cover("image.png", open('cover.png', 'rb').read())
 
     def save(self, path):
         if os.path.isfile(path):
@@ -27,7 +26,16 @@ class BookEpub:
 
         # write to the file
         epub.write_epub(path, self.book_content, {})
-    
+        os.remove("cover.png")
+
+    def status(self):
+        return "You have "+str(len(self.chapters))+" chapters"
+
+    def open(self, path):
+        self.isOpen = False
+        self.chapters = list()
+        self.book_content = epub.read_epub(path)
+
     def add_chapter(self, title, text):
         chapter = epub.EpubHtml(title=title, file_name='chapter_' + str(len(self.chapters) + 1) + '.xhtml', lang='en')
 
