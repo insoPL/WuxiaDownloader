@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 class DownloaderThread(QThread):
     end_of_download = pyqtSignal()
     new_chapter = pyqtSignal(str, str)
-    cover_retrived = pyqtSignal(str)
+    cover_retrived = pyqtSignal(str, bytes)
 
     def __init__(self, url, update_mode = False):
         self.base_url = url
@@ -18,15 +18,15 @@ class DownloaderThread(QThread):
     def run(self):
         page = requests.get(self.base_url)
         soup = BeautifulSoup(page.content, 'html.parser')
+        book_title=None
 
-        book_title = soup.find('h4').get_text()
+        if not self.update_mode:
+            book_title = soup.find('h4').get_text()
 
-        # Cover download_button_pressed
-        cover_img_url = "https://www.wuxiaworld.com"+soup.find('img', class_='media-object').get("src")
-        response = requests.get(cover_img_url)
-        if response.status_code == 200:
-            with open("cover.png", 'wb') as f:
-                f.write(response.content)
+            # Cover download_button_pressed
+            cover_img_url = "https://www.wuxiaworld.com"+soup.find('img', class_='media-object').get("src")
+            response = requests.get(cover_img_url)
+            cover_img = response.content
 
         chapter_url_list = soup.find_all('li', class_='chapter-item')
 
@@ -37,7 +37,7 @@ class DownloaderThread(QThread):
         if self.update_mode:
             chapter_url_list = chapter_url_list[::-1]
 
-        self.cover_retrived.emit(book_title)
+        self.cover_retrived.emit(book_title, cover_img)
 
         for chapter_url in chapter_url_list:
             try:

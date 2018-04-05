@@ -32,27 +32,30 @@ class AppWindow(QMainWindow):
 
         if dlg.exec_():
             self.ui.actionSave_as.setEnabled(True)
+            self.ui.download_button.setEnabled(True)
             path = dlg.selectedFiles()[0]
+
             self.book = Ebook()
-            self.book.init_from_file(path)  # self book not init yet
-            self.log("File "+path+" loaded")
+            self.book.load_from_file(path)
+
+            self.log("File "+path+" sucesfully loaded")
             self.log(self.book.status())
+
             self.update_mode = True
             self.ui.download_button.setText("Update")
             self.book_status_update()
 
-            self.last_chapter = self.book.book_content.get_metadata("wuxiadownloader","lastchapter")[0][0]
+           # self.last_chapter = self.book._book_content.get_metadata("wuxiadownloader","lastchapter")[0][0]
 
     def log(self, p_str):
         self.ui.log.append(p_str)
 
     def book_status_update(self):
         cover = QPixmap()
-        bytecover = self.book.get_cover()
-        cover.loadFromData(bytecover.content)
+        cover.loadFromData(self.book.cover)
         self.ui.book_cover.setPixmap(cover)
 
-        text = self.book.book_content.title
+        text = self.book.title
         text += '\n' + self.book.status()
         self.ui.book_info.setText(text)
 
@@ -61,7 +64,10 @@ class AppWindow(QMainWindow):
         self.progress_bar_counter=0
         self.log("Downloading from "+url)
 
-        self.book = Ebook()
+        if self.update_mode:
+            self.ui.progress_bar.setMaximum(0)
+        else:
+            self.book = Ebook()
 
         self.ui.abort_button.setEnabled(True)
         self.ui.download_button.setDisabled(True)
@@ -71,14 +77,16 @@ class AppWindow(QMainWindow):
         self.downloader_thread.cover_retrived.connect(self.cover_retrived)
         self.downloader_thread.start()
 
-    def cover_retrived(self, title):
-        self.book.init(title)
-        self.log("Downloading "+self.book.book_content.title)
+    def cover_retrived(self, title, cover):
+        if self.update_mode:
+            return
+        self.book.init(title, cover)
+        self.log("Downloading "+self.book.title)
         self.ui.progress_bar.setMaximum(self.downloader_thread.limit)
         self.book_status_update()
 
     def new_chapter_downloaded(self, title, text):
-        if self.update_mode and title in self.last_chapter:
+        if self.update_mode and title in self.last_chapter and False:
             self.downloader_thread.running = False
             self.log("last chapter")
             return
@@ -92,10 +100,6 @@ class AppWindow(QMainWindow):
         self.ui.actionSave_as.setDisabled(False)
         self.ui.abort_button.setDisabled(True)
         self.ui.progress_bar.setValue(0)
-        if self.update_mode:
-            self.book.update_data()
-        else:
-            self.book.set_meta()
         self.log(self.book.status())
         self.book_status_update()
 
@@ -108,6 +112,7 @@ class AppWindow(QMainWindow):
         dlg.setNameFilter("eBook Files (*.epub)")
 
         if dlg.exec_():
+
             path = dlg.selectedFiles()[0]
 
             if ".epub" not in path:
