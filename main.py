@@ -21,9 +21,20 @@ class AppWindow(QMainWindow):
         self.ui.actionSave_as.triggered.connect(self.save_to_button_pressed)
         self.ui.actionopen_epub_file.triggered.connect(self.open_epub_button_pressed)
         self.ui.abort_button.pressed.connect(self.abort_button_pressed)
+        self.ui.actionExit.triggered.connect(self.close)
+        self.ui.actionNewBook.triggered.connect(self.new_book_pressed)
         self.ui.novel_url.setText("https://www.wuxiaworld.com/novel/against-the-gods")
 
         self.show()
+
+    def new_book_pressed(self):
+        self.ui.book_cover.setPixmap(QPixmap("default_cover.jpg"))
+        self.ui.book_info.setText("There is currently no book loaded")
+        self.book = None
+        self.update_mode=False
+        self.ui.download_button.setText("Download")
+        self.ui.download_button.setEnabled(True)
+        self.log("Book deleted from memory")
 
     def open_epub_button_pressed(self):
         dlg = QFileDialog()
@@ -38,14 +49,15 @@ class AppWindow(QMainWindow):
             self.book = Ebook()
             self.book.load_from_file(path)
 
+            self.ui.actionNewBook.setEnabled(True)
+            self.ui.novel_url.setText(self.book.source_url)
+
             self.log("File "+path+" sucesfully loaded")
             self.log(self.book.status())
 
             self.update_mode = True
             self.ui.download_button.setText("Update")
             self.book_status_update()
-
-           # self.last_chapter = self.book._book_content.get_metadata("wuxiadownloader","lastchapter")[0][0]
 
     def log(self, p_str):
         self.ui.log.append(p_str)
@@ -66,8 +78,10 @@ class AppWindow(QMainWindow):
 
         if self.update_mode:
             self.ui.progress_bar.setMaximum(0)
+            self.chapter_updates = list()
         else:
             self.book = Ebook()
+            self.ui.actionNewBook.setEnabled(True)
 
         self.ui.abort_button.setEnabled(True)
         self.ui.download_button.setDisabled(True)
@@ -79,6 +93,7 @@ class AppWindow(QMainWindow):
 
     def cover_retrived(self, title, cover):
         if self.update_mode:
+            self.log("Downloading " + self.book.title)
             return
         self.book.init(title, cover)
         self.log("Downloading "+self.book.title)
@@ -86,9 +101,13 @@ class AppWindow(QMainWindow):
         self.book_status_update()
 
     def new_chapter_downloaded(self, title, text):
-        if self.update_mode and title in self.last_chapter and False:
+        if self.update_mode and title == self.book.get_last_chapter_title():
             self.downloader_thread.running = False
             self.log("last chapter")
+            return
+        if self.update_mode:
+            self.chapter_updates.append((title, text))
+            self.log(title)
             return
         self.progress_bar_counter += 1
         self.ui.progress_bar.setValue(self.progress_bar_counter)
@@ -97,11 +116,15 @@ class AppWindow(QMainWindow):
 
     def end_of_download(self):
         self.log("Download ended")
+        if self.update_mode:
+            self.book.update_chapters(self.chapter_updates)
+
         self.ui.actionSave_as.setDisabled(False)
         self.ui.abort_button.setDisabled(True)
         self.ui.progress_bar.setValue(0)
         self.log(self.book.status())
         self.book_status_update()
+        self.book.source_url = self.ui.novel_url.text()
 
     def abort_button_pressed(self):
         self.downloader_thread.running = False
@@ -119,7 +142,10 @@ class AppWindow(QMainWindow):
                 path += ".epub"
 
             self.log("Saving file to "+path)
-            self.book.save(path)
+            try:
+                self.book.save(path)
+            except OSError:
+                self.log("Saving error: No permissions")
 
 
 app = QApplication(sys.argv)

@@ -138,8 +138,10 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionNewBook"/>
     <addaction name="actionSave_as"/>
     <addaction name="actionopen_epub_file"/>
+    <addaction name="actionExit"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -158,6 +160,16 @@
   <action name="actionopen_epub_file">
    <property name="text">
     <string>Open epub file</string>
+   </property>
+  </action>
+  <action name="actionNewBook">
+   <property name="text">
+    <string>New</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
    </property>
   </action>
  </widget>

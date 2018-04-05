@@ -18,15 +18,15 @@ class DownloaderThread(QThread):
     def run(self):
         page = requests.get(self.base_url)
         soup = BeautifulSoup(page.content, 'html.parser')
-        book_title=None
+        book_title = soup.find('h4').get_text()
 
         if not self.update_mode:
-            book_title = soup.find('h4').get_text()
-
             # Cover download_button_pressed
             cover_img_url = "https://www.wuxiaworld.com"+soup.find('img', class_='media-object').get("src")
             response = requests.get(cover_img_url)
             cover_img = response.content
+        else:
+            cover_img = b''
 
         chapter_url_list = soup.find_all('li', class_='chapter-item')
 
