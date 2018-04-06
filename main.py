@@ -28,7 +28,7 @@ class AppWindow(QMainWindow):
         self.show()
 
     def new_book_pressed(self):
-        self.ui.book_cover.setPixmap(QPixmap("default_cover.jpg"))
+        self.ui.book_cover.setPixmap(QPixmap("default_cover.png"))
         self.ui.book_info.setText("There is currently no book loaded")
         self.book = None
         self.update_mode=False
@@ -75,6 +75,7 @@ class AppWindow(QMainWindow):
         url = self.ui.novel_url.text()
         self.progress_bar_counter=0
         self.log("Downloading from "+url)
+        self.ui.download_button.setDisabled(True)
 
         if self.update_mode:
             self.ui.progress_bar.setMaximum(0)
@@ -82,9 +83,9 @@ class AppWindow(QMainWindow):
         else:
             self.book = Ebook()
             self.ui.actionNewBook.setEnabled(True)
+            self.ui.download_button.setText("Update")
 
         self.ui.abort_button.setEnabled(True)
-        self.ui.download_button.setDisabled(True)
         self.downloader_thread = DownloaderThread(self.ui.novel_url.text(), self.update_mode)
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
         self.downloader_thread.end_of_download.connect(self.end_of_download)
@@ -103,7 +104,7 @@ class AppWindow(QMainWindow):
     def new_chapter_downloaded(self, title, text):
         if self.update_mode and title == self.book.get_last_chapter_title():
             self.downloader_thread.running = False
-            self.log("last chapter")
+            self.log("Novel Updated")
             return
         if self.update_mode:
             self.chapter_updates.append((title, text))
@@ -119,12 +120,15 @@ class AppWindow(QMainWindow):
         if self.update_mode:
             self.book.update_chapters(self.chapter_updates)
 
-        self.ui.actionSave_as.setDisabled(False)
+        self.ui.actionSave_as.setEnabled(True)
         self.ui.abort_button.setDisabled(True)
+        self.ui.download_button.setEnabled(True)
         self.ui.progress_bar.setValue(0)
+        self.ui.progress_bar.setMaximum(1)
         self.log(self.book.status())
         self.book_status_update()
         self.book.source_url = self.ui.novel_url.text()
+        self.update_mode = True
 
     def abort_button_pressed(self):
         self.downloader_thread.running = False

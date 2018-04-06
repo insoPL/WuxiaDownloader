@@ -30,7 +30,7 @@ class DownloaderThread(QThread):
 
         chapter_url_list = soup.find_all('li', class_='chapter-item')
 
-        chapter_url_list = [chapter.a.get("href") for chapter in chapter_url_list]
+        chapter_url_list = [(chapter.getText(), chapter.a.get("href")) for chapter in chapter_url_list]
 
         self.limit = len(chapter_url_list)
 
@@ -39,21 +39,23 @@ class DownloaderThread(QThread):
 
         self.cover_retrived.emit(book_title, cover_img)
 
-        for chapter_url in chapter_url_list:
+        for chapter_title, chapter_url in chapter_url_list:
             try:
-                name, text = _download_and_parse("https://www.wuxiaworld.com"+chapter_url)
+                text = _download_and_parse("https://www.wuxiaworld.com"+chapter_url)
             except EOFError:
                 self.end_of_download.emit()
                 return
 
-            if "patreon" in name:
+            if "Teaser" in chapter_title:
                 continue
 
             if not self.running:
                 self.end_of_download.emit()
                 return
 
-            self.new_chapter.emit(name, text)
+            chapter_title = chapter_title.replace('\n','')
+
+            self.new_chapter.emit(chapter_title, text)
 
         self.end_of_download.emit()
         self.running = False
@@ -79,9 +81,7 @@ def _download_and_parse(url):
         if len(foo) > 0:
             content.append(foo)
 
-    text = ['<p>' + foo + '</p>' for foo in content[1:]]
+    text = ['<p>' + foo + '</p>' for foo in content]
     text = ''.join(text)
 
-    title = content[0]
-
-    return title, text
+    return text
