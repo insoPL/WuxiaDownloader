@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QLabel
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
 from PyQt5.QtGui import QPixmap
 from mainwindow import Ui_MainWindow
 from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
+from choose_book import choose_volume
+from cover_downloader import download_cover
 
 
 class AppWindow(QMainWindow):
@@ -13,14 +15,16 @@ class AppWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.update_mode=False
+        self.update_mode = False
+        self.downloader_thread = None
+        self.book = None
 
         self.setWindowTitle("Wuxia Downloader")
 
-        self.ui.download_button.pressed.connect(self.download_button_pressed)
+        self.ui.download_button.clicked.connect(self.download_button_pressed)
         self.ui.actionSave_as.triggered.connect(self.save_to_button_pressed)
         self.ui.actionopen_epub_file.triggered.connect(self.open_epub_button_pressed)
-        self.ui.abort_button.pressed.connect(self.abort_button_pressed)
+        self.ui.abort_button.clicked.connect(self.abort_button_pressed)
         self.ui.actionExit.triggered.connect(self.close)
         self.ui.actionNewBook.triggered.connect(self.new_book_pressed)
         self.ui.novel_url.setText("https://www.wuxiaworld.com/novel/against-the-gods")
@@ -28,12 +32,11 @@ class AppWindow(QMainWindow):
         self.show()
 
     def new_book_pressed(self):
-        self.ui.book_cover.setPixmap(QPixmap("default_cover.png"))
-        self.ui.book_info.setText("There is currently no book loaded")
         self.book = None
-        self.update_mode=False
-        self.ui.download_button.setText("Download")
-        self.ui.download_button.setEnabled(True)
+        self.book_status_update()
+        self.change_update_mode(False)
+        self.ui.actionNewBook.setDisabled(True)
+        self.ui.actionSave_as.setDisabled(True)
         self.log("Book deleted from memory")
 
     def open_epub_button_pressed(self):
@@ -47,7 +50,8 @@ class AppWindow(QMainWindow):
             path = dlg.selectedFiles()[0]
 
             self.book = Ebook()
-            self.book.load_from_file(path)
+            self.title, self.cover = self.book.load_from_file(path)
+            self.status=self.book.volume_name
 
             self.ui.actionNewBook.setEnabled(True)
             self.ui.novel_url.setText(self.book.source_url)
@@ -55,61 +59,105 @@ class AppWindow(QMainWindow):
             self.log("File "+path+" sucesfully loaded")
             self.log(self.book.status())
 
-            self.update_mode = True
-            self.ui.download_button.setText("Update")
             self.book_status_update()
+
+            self.change_update_mode(True)
+
+    def change_update_mode(self, mode):
+        self.update_mode = mode
+        if mode:
+            self.ui.download_button.setText("Update")
+            self.ui.download_button.clicked.disconnect()
+            self.ui.download_button.clicked.connect(self.update_button_pressed)
+        else:
+            self.ui.download_button.setText("Download")
+            self.ui.download_button.clicked.disconnect()
+            self.ui.download_button.clicked.connect(self.download_button_pressed)
 
     def log(self, p_str):
         self.ui.log.append(p_str)
 
     def book_status_update(self):
+        if self.book is None:
+            self.ui.book_cover.setPixmap(QPixmap("default_cover.png"))
+            self.ui.book_info.setText("There is currently no book loaded")
+
         cover = QPixmap()
-        cover.loadFromData(self.book.cover)
+        cover.loadFromData(self.cover)
         self.ui.book_cover.setPixmap(cover)
 
-        text = self.book.title
-        text += '\n' + self.book.status()
+        text = self.title
+        text += '\n' + self.status
         self.ui.book_info.setText(text)
 
     def download_button_pressed(self):
         url = self.ui.novel_url.text()
-        self.progress_bar_counter=0
         self.log("Downloading from "+url)
+
+        self.title, self.cover, volumes_dict = download_cover(self.ui.novel_url.text())
+
+        self.log("Downloading book " + self.title)
+
+        for book_title, foo in volumes_dict.items():
+            self.log(book_title)
+
+        self.status = "There is " + str(len(volumes_dict)) + " volumes"
+        self.book_status_update()
+        choosen_volume = choose_volume(volumes_dict)
+        if choosen_volume is None:
+            return
+
+        self.log("downloading volume: " + choosen_volume)
+        self.book = Ebook()
+        self.book.source_url = self.ui.novel_url.text()
+        self.book.init(self.title, choosen_volume, self.cover)
+
         self.ui.download_button.setDisabled(True)
-
-        if self.update_mode:
-            self.ui.progress_bar.setMaximum(0)
-            self.chapter_updates = list()
-        else:
-            self.book = Ebook()
-            self.ui.actionNewBook.setEnabled(True)
-            self.ui.download_button.setText("Update")
-
         self.ui.abort_button.setEnabled(True)
-        self.downloader_thread = DownloaderThread(self.ui.novel_url.text(), self.update_mode)
+
+        self.downloader_thread = DownloaderThread(volumes_dict[choosen_volume])
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
         self.downloader_thread.end_of_download.connect(self.end_of_download)
-        self.downloader_thread.cover_retrived.connect(self.cover_retrived)
+
+        self.ui.progress_bar.setMaximum(len(volumes_dict[choosen_volume]))
+        self.progress_bar_counter = 0
+
         self.downloader_thread.start()
 
-    def cover_retrived(self, title, cover):
-        if self.update_mode:
-            self.log("Downloading " + self.book.title)
-            return
-        self.book.init(title, cover)
-        self.log("Downloading "+self.book.title)
-        self.ui.progress_bar.setMaximum(self.downloader_thread.limit)
-        self.book_status_update()
+    def update_button_pressed(self):
+        url = self.ui.novel_url.text()
+        self.log("Downloading from "+url)
+
+        self.title, self.cover, volumes_dict = download_cover(self.ui.novel_url.text())
+
+        self.log("Downloading " + self.title)
+
+        choosen_volume = self.book.volume_name
+
+        self.log("downloading volume: " + choosen_volume)
+
+        self.ui.download_button.setDisabled(True)
+        self.ui.abort_button.setEnabled(True)
+
+        chapters = volumes_dict[choosen_volume]
+
+        i=0
+        for chapter_title, chapter_url in chapters:
+            i+=1
+            if chapter_title == self.book.get_last_chapter_title():
+                break
+        chapters = chapters[i:]
+
+        self.downloader_thread = DownloaderThread(chapters)
+        self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
+        self.downloader_thread.end_of_download.connect(self.end_of_download)
+
+        self.ui.progress_bar.setMaximum(len(volumes_dict[choosen_volume]))
+        self.progress_bar_counter = 0
+
+        self.downloader_thread.start()
 
     def new_chapter_downloaded(self, title, text):
-        if self.update_mode and title == self.book.get_last_chapter_title():
-            self.downloader_thread.running = False
-            self.log("Novel Updated")
-            return
-        if self.update_mode:
-            self.chapter_updates.append((title, text))
-            self.log(title)
-            return
         self.progress_bar_counter += 1
         self.ui.progress_bar.setValue(self.progress_bar_counter)
         self.log(title)
@@ -117,18 +165,16 @@ class AppWindow(QMainWindow):
 
     def end_of_download(self):
         self.log("Download ended")
-        if self.update_mode:
-            self.book.update_chapters(self.chapter_updates)
-
         self.ui.actionSave_as.setEnabled(True)
         self.ui.abort_button.setDisabled(True)
         self.ui.download_button.setEnabled(True)
+        self.ui.actionNewBook.setEnabled(True)
+
         self.ui.progress_bar.setValue(0)
         self.ui.progress_bar.setMaximum(1)
         self.log(self.book.status())
         self.book_status_update()
-        self.book.source_url = self.ui.novel_url.text()
-        self.update_mode = True
+        self.change_update_mode(True)
 
     def abort_button_pressed(self):
         self.downloader_thread.running = False

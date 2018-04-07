@@ -9,7 +9,8 @@ class Ebook:
         self._chapters = list()
         self.source_url = ""
 
-    def init(self, title, cover):
+    def init(self, title, volume_name, cover):
+        self.volume_name = volume_name
         self.title = title
         self.cover = cover
 
@@ -20,8 +21,8 @@ class Ebook:
         loaded_epub= epub.read_epub(path)
 
         self.source_url = loaded_epub.get_metadata("wuxiadownloader","downloadurl")[0][0]
-
-        self.title = loaded_epub.title
+        self.volume_name = loaded_epub.get_metadata("wuxiadownloader","volume_name")[0][0]
+        self.title = loaded_epub.get_metadata("wuxiadownloader","raw_title")[0][0]
 
         epub_cover = get_items_of_type(epub.EpubCover, loaded_epub.items)[0]
         self.cover = epub_cover.content
@@ -29,11 +30,12 @@ class Ebook:
         EpubHtmls = get_items_of_type(epub.EpubHtml, loaded_epub.get_items())
         for raw_chapter in EpubHtmls[1:]:
             title, text = parse_from_file(raw_chapter.content)
-            chapter = epub.EpubHtml(title=title, file_name=title.lower().replace(" ", "-") + '.xhtml', lang='en')
+            chapter = epub.EpubHtml(title=title, file_name="chapter"+str(len(self._chapters))+ '.xhtml', lang='en')
 
             chapter.content = u'<h1>' + title + '</h1>' + text
 
             self._chapters.append(chapter)
+        return self.title, self.cover
 
     def save(self, path):
         if os.path.isfile(path):
@@ -49,7 +51,7 @@ class Ebook:
         return "You have " + str(len(self._chapters)) + " chapters loaded."
 
     def add_chapter(self, title, text):
-        chapter = epub.EpubHtml(title=title, file_name=title.lower().replace(" ", "-")+ '.xhtml', lang='en')
+        chapter = epub.EpubHtml(title=title, file_name="chapter"+str(len(self._chapters))+ '.xhtml', lang='en')
 
         chapter.content = u'<h1>' + title + '</h1>'+text
 
@@ -61,8 +63,9 @@ class Ebook:
             self.add_chapter(title, text)
 
     def set_meta(self, book_content):
-        book_content.set_identifier(self.title.lower().replace(" ", "-"))
-        book_content.set_title(self.title)
+        full_volume_title = self.title+" "+self.volume_name
+        book_content.set_identifier(full_volume_title.lower().replace(" ", "-"))
+        book_content.set_title(full_volume_title)
         book_content.set_language('en')
         book_content.set_cover("image.png", self.cover)
 
@@ -86,6 +89,9 @@ class Ebook:
         book_content.spine = ['nav', *self._chapters]
 
         book_content.set_unique_metadata("wuxiadownloader", "downloadurl", self.source_url)
+        book_content.set_unique_metadata("wuxiadownloader", "volume_name", self.volume_name)
+        book_content.set_unique_metadata("wuxiadownloader", "raw_title", self.title)
+
         return book_content
 
 

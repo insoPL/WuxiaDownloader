@@ -7,39 +7,15 @@ from bs4 import BeautifulSoup
 class DownloaderThread(QThread):
     end_of_download = pyqtSignal()
     new_chapter = pyqtSignal(str, str)
-    cover_retrived = pyqtSignal(str, bytes)
 
-    def __init__(self, url, update_mode = False):
-        self.base_url = url
+    def __init__(self, list_of_chapters):  # list of tuples (title, url)
         self.running = True
-        self.update_mode = update_mode
+        self.list_of_chapters = list_of_chapters
         QThread.__init__(self)
 
     def run(self):
-        page = requests.get(self.base_url)
-        soup = BeautifulSoup(page.content, 'html.parser')
-        book_title = soup.find('h4').get_text()
 
-        if not self.update_mode:
-            # Cover download_button_pressed
-            cover_img_url = "https://www.wuxiaworld.com"+soup.find('img', class_='media-object').get("src")
-            response = requests.get(cover_img_url)
-            cover_img = response.content
-        else:
-            cover_img = b''
-
-        chapter_url_list = soup.find_all('li', class_='chapter-item')
-
-        chapter_url_list = [(chapter.getText(), chapter.a.get("href")) for chapter in chapter_url_list]
-
-        self.limit = len(chapter_url_list)
-
-        if self.update_mode:
-            chapter_url_list = chapter_url_list[::-1]
-
-        self.cover_retrived.emit(book_title, cover_img)
-
-        for chapter_title, chapter_url in chapter_url_list:
+        for chapter_title, chapter_url in self.list_of_chapters:
             try:
                 text = _download_and_parse("https://www.wuxiaworld.com"+chapter_url)
             except EOFError:
@@ -52,8 +28,6 @@ class DownloaderThread(QThread):
             if not self.running:
                 self.end_of_download.emit()
                 return
-
-            chapter_title = chapter_title.replace('\n','')
 
             self.new_chapter.emit(chapter_title, text)
 
