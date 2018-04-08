@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
+from PyQt5.QtGui import QPixmap, QIcon
 from mainwindow import Ui_MainWindow
 from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
 from choose_book import choose_volume
 from cover_downloader import download_cover
+from PyQt5.QtWinExtras import  QWinTaskbarButton
 
 
 class AppWindow(QMainWindow):
@@ -27,9 +28,37 @@ class AppWindow(QMainWindow):
         self.ui.abort_button.clicked.connect(self.abort_button_pressed)
         self.ui.actionExit.triggered.connect(self.close)
         self.ui.actionNewBook.triggered.connect(self.new_book_pressed)
+        self.ui.actionAbout.triggered.connect(self.show_about)
         self.ui.novel_url.setText("https://www.wuxiaworld.com/novel/against-the-gods")
 
         self.show()
+
+        self.button = QWinTaskbarButton(self)
+        self.button.setOverlayIcon(QIcon("icon.ico"))
+        self.button.setWindow(self.windowHandle())
+        self.icon_progress_bar = self.button.progress()
+
+    def start_progress_bar(self, maximum):
+        self.progress_bar_counter = 0
+
+        self.icon_progress_bar.setValue(0)
+        self.icon_progress_bar.setVisible(True)
+        self.icon_progress_bar.setMaximum(maximum)
+
+        self.ui.progress_bar.setValue(0)
+        self.ui.progress_bar.setEnabled(True)
+        self.ui.progress_bar.setMaximum(maximum)
+
+    def increment_progress_bar(self):
+        self.progress_bar_counter += 1
+        self.icon_progress_bar.setValue(self.progress_bar_counter)
+        self.ui.progress_bar.setValue(self.progress_bar_counter)
+
+    def stop_progress_bar(self):
+        self.icon_progress_bar.setValue(0)
+        self.icon_progress_bar.setVisible(False)
+        self.ui.progress_bar.setValue(0)
+        self.ui.progress_bar.setEnabled(False)
 
     def new_book_pressed(self):
         self.book = None
@@ -101,11 +130,12 @@ class AppWindow(QMainWindow):
         for book_title, foo in volumes_dict.items():
             self.log(book_title)
 
-        self.status = "There is " + str(len(volumes_dict)) + " volumes"
-        self.book_status_update()
         choosen_volume = choose_volume(volumes_dict)
         if choosen_volume is None:
             return
+
+        self.status = choosen_volume+"\nThere is " + str(len(volumes_dict)) + " volumes"
+        self.book_status_update()
 
         self.log("downloading volume: " + choosen_volume)
         self.book = Ebook()
@@ -119,8 +149,7 @@ class AppWindow(QMainWindow):
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
         self.downloader_thread.end_of_download.connect(self.end_of_download)
 
-        self.ui.progress_bar.setMaximum(len(volumes_dict[choosen_volume]))
-        self.progress_bar_counter = 0
+        self.start_progress_bar(len(volumes_dict[choosen_volume]))
 
         self.downloader_thread.start()
 
@@ -152,14 +181,12 @@ class AppWindow(QMainWindow):
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
         self.downloader_thread.end_of_download.connect(self.end_of_download)
 
-        self.ui.progress_bar.setMaximum(len(volumes_dict[choosen_volume]))
-        self.progress_bar_counter = 0
+        self.start_progress_bar(len(volumes_dict[choosen_volume]))
 
         self.downloader_thread.start()
 
     def new_chapter_downloaded(self, title, text):
-        self.progress_bar_counter += 1
-        self.ui.progress_bar.setValue(self.progress_bar_counter)
+        self.increment_progress_bar()
         self.log(title)
         self.book.add_chapter(title, text)
 
@@ -170,8 +197,7 @@ class AppWindow(QMainWindow):
         self.ui.download_button.setEnabled(True)
         self.ui.actionNewBook.setEnabled(True)
 
-        self.ui.progress_bar.setValue(0)
-        self.ui.progress_bar.setMaximum(1)
+        self.stop_progress_bar()
         self.log(self.book.status())
         self.book_status_update()
         self.change_update_mode(True)
@@ -181,11 +207,13 @@ class AppWindow(QMainWindow):
 
     def save_to_button_pressed(self):
         dlg = QFileDialog()
+        dlg.setAcceptMode(QFileDialog.AcceptSave)
+        default_name = (self.book.title+" "+self.book.volume_name)
+        dlg.selectFile(default_name)
         dlg.setFileMode(QFileDialog.AnyFile)
-        dlg.setNameFilter("eBook Files (*.epub)")
+        dlg.setNameFilter("eBook File (*.epub)")
 
         if dlg.exec_():
-
             path = dlg.selectedFiles()[0]
 
             if ".epub" not in path:
@@ -197,6 +225,11 @@ class AppWindow(QMainWindow):
             except OSError:
                 self.log("Saving error: No permissions")
 
+    def show_about(self):
+        about_dialog = QMessageBox(self)
+        about_dialog.setWindowTitle("About")
+        about_dialog.setText("Created by InsoPL")
+        about_dialog.show()
 
 app = QApplication(sys.argv)
 w = AppWindow()
