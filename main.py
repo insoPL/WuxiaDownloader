@@ -2,13 +2,13 @@
 
 import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtGui import QPixmap
 from mainwindow import Ui_MainWindow
 from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
 from choose_book import choose_volume
 from cover_downloader import download_cover
-from PyQt5.QtWinExtras import  QWinTaskbarButton
+from PyQt5.QtWinExtras import QWinTaskbarButton
 
 
 class AppWindow(QMainWindow):
@@ -19,6 +19,8 @@ class AppWindow(QMainWindow):
         self.update_mode = False
         self.downloader_thread = None
         self.book = None
+        self.cover = None
+        self.title = None
 
         self.setWindowTitle("Wuxia Downloader")
 
@@ -34,7 +36,6 @@ class AppWindow(QMainWindow):
         self.show()
 
         self.button = QWinTaskbarButton(self)
-        self.button.setOverlayIcon(QIcon("icon.ico"))
         self.button.setWindow(self.windowHandle())
         self.icon_progress_bar = self.button.progress()
 
@@ -62,6 +63,8 @@ class AppWindow(QMainWindow):
 
     def new_book_pressed(self):
         self.book = None
+        self.cover = None
+        self.title = None
         self.book_status_update()
         self.change_update_mode(False)
         self.ui.actionNewBook.setDisabled(True)
@@ -80,7 +83,6 @@ class AppWindow(QMainWindow):
 
             self.book = Ebook()
             self.title, self.cover = self.book.load_from_file(path)
-            self.status=self.book.volume_name
 
             self.ui.actionNewBook.setEnabled(True)
             self.ui.novel_url.setText(self.book.source_url)
@@ -108,16 +110,15 @@ class AppWindow(QMainWindow):
 
     def book_status_update(self):
         if self.book is None:
-            self.ui.book_cover.setPixmap(QPixmap("default_cover.png"))
+            self.ui.book_cover.setPixmap(QPixmap(":/images/default_cover.png"))
             self.ui.book_info.setText("There is currently no book loaded")
+            return
 
         cover = QPixmap()
         cover.loadFromData(self.cover)
         self.ui.book_cover.setPixmap(cover)
 
-        text = self.title
-        text += '\n' + self.status
-        self.ui.book_info.setText(text)
+        self.ui.book_info.setText(self.book.status())
 
     def download_button_pressed(self):
         url = self.ui.novel_url.text()
@@ -130,17 +131,18 @@ class AppWindow(QMainWindow):
         for book_title, foo in volumes_dict.items():
             self.log(book_title)
 
+        self.book_status_update()
+
         choosen_volume = choose_volume(volumes_dict)
         if choosen_volume is None:
             return
-
-        self.status = choosen_volume+"\nThere is " + str(len(volumes_dict)) + " volumes"
-        self.book_status_update()
 
         self.log("downloading volume: " + choosen_volume)
         self.book = Ebook()
         self.book.source_url = self.ui.novel_url.text()
         self.book.init(self.title, choosen_volume, self.cover)
+
+        self.book_status_update()
 
         self.ui.download_button.setDisabled(True)
         self.ui.abort_button.setEnabled(True)
@@ -170,9 +172,9 @@ class AppWindow(QMainWindow):
 
         chapters = volumes_dict[choosen_volume]
 
-        i=0
+        i = 0
         for chapter_title, chapter_url in chapters:
-            i+=1
+            i += 1
             if chapter_title == self.book.get_last_chapter_title():
                 break
         chapters = chapters[i:]
@@ -181,7 +183,7 @@ class AppWindow(QMainWindow):
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
         self.downloader_thread.end_of_download.connect(self.end_of_download)
 
-        self.start_progress_bar(len(volumes_dict[choosen_volume]))
+        self.start_progress_bar(len(chapters))
 
         self.downloader_thread.start()
 
@@ -191,7 +193,9 @@ class AppWindow(QMainWindow):
         self.book.add_chapter(title, text)
 
     def end_of_download(self):
+        self.book_status_update()
         self.log("Download ended")
+
         self.ui.actionSave_as.setEnabled(True)
         self.ui.abort_button.setDisabled(True)
         self.ui.download_button.setEnabled(True)
@@ -230,6 +234,7 @@ class AppWindow(QMainWindow):
         about_dialog.setWindowTitle("About")
         about_dialog.setText("Created by InsoPL")
         about_dialog.show()
+
 
 app = QApplication(sys.argv)
 w = AppWindow()

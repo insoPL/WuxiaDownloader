@@ -17,8 +17,8 @@
    <string>MainWindow</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>icon.ico</normaloff>icon.ico</iconset>
+   <iconset resource="resources.qrc">
+    <normaloff>:/images/icon.ico</normaloff>:/images/icon.ico</iconset>
   </property>
   <property name="autoFillBackground">
    <bool>false</bool>
@@ -1255,7 +1255,7 @@ QDateEdit::down-arrow:focus {
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap>logo.png</pixmap>
+       <pixmap resource="resources.qrc">:/images/logo.png</pixmap>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -1309,7 +1309,7 @@ QDateEdit::down-arrow:focus {
            <string/>
           </property>
           <property name="pixmap">
-           <pixmap>default_cover.png</pixmap>
+           <pixmap resource="resources.qrc">:/images/default_cover.png</pixmap>
           </property>
          </widget>
         </item>
@@ -1424,6 +1424,8 @@ QDateEdit::down-arrow:focus {
    </property>
   </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

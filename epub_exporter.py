@@ -48,7 +48,10 @@ class Ebook:
         epub.write_epub(path, book_content, {})
 
     def status(self):
-        return "You have " + str(len(self._chapters)) + " chapters loaded."
+        text = self.title + '\n'
+        text += self.volume_name + '\n'
+        text += "You have " + str(len(self._chapters)) + " chapters loaded."
+        return text
 
     def add_chapter(self, title, text):
         chapter = epub.EpubHtml(title=title, file_name="chapter"+str(len(self._chapters))+ '.xhtml', lang='en')
