@@ -65,7 +65,6 @@ class AppWindow(QMainWindow):
         self.book = None
         self.cover = None
         self.title = None
-        self.book_status_update()
         self.change_update_mode(False)
         self.ui.actionNewBook.setDisabled(True)
         self.ui.actionSave_as.setDisabled(True)
@@ -77,24 +76,25 @@ class AppWindow(QMainWindow):
         dlg.setNameFilter("eBook Files (*.epub)")
 
         if dlg.exec_():
-            self.ui.actionSave_as.setEnabled(True)
-            self.ui.download_button.setEnabled(True)
             path = dlg.selectedFiles()[0]
+            self.load_epub_from_file(path)
 
-            self.book = Ebook()
-            self.title, self.cover = self.book.load_from_file(path)
+    def load_epub_from_file(self, path):
+        self.book = Ebook()
+        self.title, self.cover = self.book.load_from_file(path)
 
-            self.ui.actionNewBook.setEnabled(True)
-            self.ui.novel_url.setText(self.book.source_url)
+        self.ui.actionSave_as.setEnabled(True)
+        self.ui.download_button.setEnabled(True)
+        self.ui.actionNewBook.setEnabled(True)
+        self.ui.novel_url.setText(self.book.source_url)
 
-            self.log("File "+path+" sucesfully loaded")
-            self.log(self.book.status())
+        self.log("File " + path + " sucesfully loaded")
+        self.log(self.book.status())
 
-            self.book_status_update()
-
-            self.change_update_mode(True)
+        self.change_update_mode(True)
 
     def change_update_mode(self, mode):
+        self.book_status_update()
         self.update_mode = mode
         if mode:
             self.ui.download_button.setText("Update")
@@ -110,7 +110,7 @@ class AppWindow(QMainWindow):
 
     def book_status_update(self):
         if self.book is None:
-            self.ui.book_cover.setPixmap(QPixmap(":default_cover.png"))
+            self.ui.book_cover.setPixmap(QPixmap(":images/default_cover.png"))
             self.ui.book_info.setText("There is currently no book loaded")
             return
 
@@ -130,8 +130,6 @@ class AppWindow(QMainWindow):
 
         for book_title, foo in volumes_dict.items():
             self.log(book_title)
-
-        self.book_status_update()
 
         choosen_volume = choose_volume(volumes_dict)
         if choosen_volume is None:
@@ -193,7 +191,6 @@ class AppWindow(QMainWindow):
         self.book.add_chapter(title, text)
 
     def end_of_download(self):
-        self.book_status_update()
         self.log("Download ended")
 
         self.ui.actionSave_as.setEnabled(True)
@@ -203,7 +200,6 @@ class AppWindow(QMainWindow):
 
         self.stop_progress_bar()
         self.log(self.book.status())
-        self.book_status_update()
         self.change_update_mode(True)
 
     def abort_button_pressed(self):
@@ -234,6 +230,17 @@ class AppWindow(QMainWindow):
         about_dialog.setWindowTitle("About")
         about_dialog.setText("Created by InsoPL")
         about_dialog.show()
+
+    def dragEnterEvent(self, e):
+        data = e.mimeData().text()
+        if data[:4] == "file" and data[-4:] == "epub":  # if draged item is a file that name ends with "epub"
+            e.acceptProposedAction()
+
+    def dropEvent(self, e):
+        path = e.mimeData().text()
+        path = path[8:]
+        self.load_epub_from_file(path)
+        self.log(path)
 
 
 app = QApplication(sys.argv)
