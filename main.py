@@ -253,7 +253,15 @@ class AppWindow(QMainWindow):
     def show_about(self):
         about_dialog = QMessageBox(self)
         about_dialog.setWindowTitle("About")
-        about_dialog.setText("Created by InsoPL")
+        about_dialog.setText(
+                "<div style=\"text-align: center\">" +
+                "<p>Created by InsoPL</p>" +
+                "<p>Distributed Under MIT License</p>" +
+                "<p>More info and source code avalible</p>" +
+                "<p><a href=\"https://github.com/insoPL/WuxiaDownloader\" style=\"color: #cccccc\">https://github.com/insoPL/WuxiaDownloader</a></p>"+
+                "</div>"
+                )
+
         about_dialog.show()
 
     def dragEnterEvent(self, e):
