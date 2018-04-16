@@ -22,7 +22,7 @@ class AppWindow(QMainWindow):
         self.cover = None
         self.title = None
 
-        self.setWindowTitle("Wuxia Downloader")
+        self.setWindowTitle("WuxiaDownloader")
 
         self.ui.download_button.clicked.connect(self.download_button_pressed)
         self.ui.actionSave.triggered.connect(self.save_button_pressed)
