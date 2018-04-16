@@ -8,6 +8,7 @@ class Ebook:
     def __init__(self):
         self._chapters = list()
         self.source_url = ""
+        self.file_path = None
 
     def init(self, title, volume_name, cover):
         self.volume_name = volume_name
@@ -18,7 +19,8 @@ class Ebook:
         return self._chapters[-1].title
 
     def load_from_file(self, path):
-        loaded_epub= epub.read_epub(path)
+        loaded_epub = epub.read_epub(path)
+        self.file_path = path
 
         self.source_url = loaded_epub.get_metadata("wuxiadownloader","downloadurl")[0][0]
         self.volume_name = loaded_epub.get_metadata("wuxiadownloader","volume_name")[0][0]

@@ -25,6 +25,7 @@ class AppWindow(QMainWindow):
         self.setWindowTitle("Wuxia Downloader")
 
         self.ui.download_button.clicked.connect(self.download_button_pressed)
+        self.ui.actionSave.triggered.connect(self.save_button_pressed)
         self.ui.actionSave_as.triggered.connect(self.save_to_button_pressed)
         self.ui.actionopen_epub_file.triggered.connect(self.open_epub_button_pressed)
         self.ui.abort_button.clicked.connect(self.abort_button_pressed)
@@ -32,6 +33,11 @@ class AppWindow(QMainWindow):
         self.ui.actionNewBook.triggered.connect(self.new_book_pressed)
         self.ui.actionAbout.triggered.connect(self.show_about)
         self.ui.novel_url.setText("https://www.wuxiaworld.com/novel/against-the-gods")
+
+        self.ui.actionNewBook.setShortcut('Ctrl+N')
+        self.ui.actionExit.setShortcut('Ctrl+E')
+        self.ui.actionSave.setShortcut('Ctrl+S')
+        self.ui.actionopen_epub_file.setShortcut('Ctrl+O')
 
         self.show()
 
@@ -73,6 +79,7 @@ class AppWindow(QMainWindow):
         self.change_update_mode(False)
         self.ui.actionNewBook.setDisabled(True)
         self.ui.actionSave_as.setDisabled(True)
+        self.ui.actionSave.setDisabled(True)
         self.log("Book deleted from memory")
 
     def open_epub_button_pressed(self):
@@ -88,6 +95,7 @@ class AppWindow(QMainWindow):
         self.book = Ebook()
         self.title, self.cover = self.book.load_from_file(path)
 
+        self.ui.actionSave.setEnabled(True)
         self.ui.actionSave_as.setEnabled(True)
         self.ui.download_button.setEnabled(True)
         self.ui.actionNewBook.setEnabled(True)
@@ -229,6 +237,18 @@ class AppWindow(QMainWindow):
                 self.book.save(path)
             except OSError:
                 self.log("Saving error: No permissions")
+
+    def save_button_pressed(self):
+        if self.book.file_path is None:
+            self.log("Save error")
+            return
+
+        path = self.book.file_path
+        try:
+            self.book.save(path)
+        except OSError:
+            self.log("Saving error: No permissions")
+        self.log("Epub saved: "+path)
 
     def show_about(self):
         about_dialog = QMessageBox(self)
