@@ -49,11 +49,19 @@ def _download_and_parse(url):
 
     content = list()
 
-    for art in article.find_all('p'):
+    all_verses = article.find_all('p')
+
+    if "chapter" in all_verses[0].text.lower():  # if first verse contains word "chapter" delete it
+        all_verses = all_verses[1:]
+
+    for art in all_verses:
 
         foo = art.get_text()
-        if len(foo) > 0:
-            content.append(foo)
+        if len(foo) < 1:
+            continue
+        if "chapter" in foo.lower():
+            continue
+        content.append(foo)
 
     text = ['<p>' + foo + '</p>' for foo in content]
     text = ''.join(text)

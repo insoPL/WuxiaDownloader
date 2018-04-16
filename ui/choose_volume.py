@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5.QtWidgets import QDialog
-from choose_volume_raw import Ui_Dialog
+from ui_res.choose_volume_raw import Ui_Dialog
 
 
 def choose_volume(volumes_dict):

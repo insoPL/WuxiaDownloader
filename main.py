@@ -3,10 +3,10 @@
 import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 from PyQt5.QtGui import QPixmap
-from mainwindow import Ui_MainWindow
+from ui_res.mainwindow import Ui_MainWindow
 from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
-from choose_book import choose_volume
+from ui.choose_volume import choose_volume
 from cover_downloader import download_cover
 from PyQt5.QtWinExtras import QWinTaskbarButton
 
@@ -110,7 +110,7 @@ class AppWindow(QMainWindow):
 
     def book_status_update(self):
         if self.book is None:
-            self.ui.book_cover.setPixmap(QPixmap(":/images/default_cover.png"))
+            self.ui.book_cover.setPixmap(QPixmap(":default_cover.png"))
             self.ui.book_info.setText("There is currently no book loaded")
             return
 

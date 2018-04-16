@@ -1,5 +1,5 @@
 <RCC>
-  <qresource prefix="/">
+  <qresource prefix="">
     <file>images/default_cover.png</file>
     <file>images/icon.ico</file>
     <file>images/logo.png</file>

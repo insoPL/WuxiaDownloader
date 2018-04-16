@@ -1425,7 +1425,7 @@ QDateEdit::down-arrow:focus {
   </action>
  </widget>
  <resources>
-  <include location="resources.qrc"/>
+  <include location="ui/resources.qrc"/>
  </resources>
  <connections/>
 </ui>
