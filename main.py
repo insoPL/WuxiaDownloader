@@ -12,7 +12,7 @@ from PyQt5.QtWinExtras import QWinTaskbarButton
 
 
 class AppWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, argv):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -38,6 +38,11 @@ class AppWindow(QMainWindow):
         self.button = QWinTaskbarButton(self)
         self.button.setWindow(self.windowHandle())
         self.icon_progress_bar = self.button.progress()
+
+        if len(argv) > 1:
+            path = argv[1]
+            if path[-4:] == "epub":  # if path is a file that name ends with "epub"
+                self.load_epub_from_file(path)
 
     def start_progress_bar(self, maximum):
         self.progress_bar_counter = 0
@@ -244,6 +249,6 @@ class AppWindow(QMainWindow):
 
 
 app = QApplication(sys.argv)
-w = AppWindow()
+w = AppWindow(sys.argv)
 w.show()
 sys.exit(app.exec_())
