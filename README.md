@@ -1,6 +1,6 @@
-# Project Title
+# WuxiaDownloader
 
-Allows to download wuxia novels from wuxiaworld and save them as handy epub files.
+Small program created to download wuxia novels from wuxiaworld and save them as handy epub files.
 When your favorite wuxia is updated you can easliy update your epub by opening file("File>Open epub file" or drag&drop)
 and clicking "update" button.
 
@@ -15,7 +15,7 @@ For program to run you need following libraries:
 
 ## Compiling
 
-Before running program you need to compile ui files using pyuic:
+Before running program you need to compile resource and ui files using pyuic:
 
 ```
 pyuic5 --from-imports ui\mainwindow.ui > ui_res\mainwindow.py
@@ -28,7 +28,7 @@ pyrcc5 ui\resources.qrc > ui_res\resources_rc.py
 Executable files can be created using pyinstaller
 
 ### Widnows
-There is pyinstaller's .spec file in main cataloge configured to export program to single executable.
+There is pyinstaller's .spec file in main cataloge configured to export program to single exe file.
 You just need to update path inside pathex
 
 ## License

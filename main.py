@@ -8,7 +8,10 @@ from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
 from cover_downloader import download_cover
-from PyQt5.QtWinExtras import QWinTaskbarButton
+from PyInstaller.compat import is_win
+
+if is_win:
+    from PyQt5.QtWinExtras import QWinTaskbarButton
 
 
 class AppWindow(QMainWindow):
@@ -41,9 +44,10 @@ class AppWindow(QMainWindow):
 
         self.show()
 
-        self.button = QWinTaskbarButton(self)
-        self.button.setWindow(self.windowHandle())
-        self.icon_progress_bar = self.button.progress()
+        if is_win:
+            button = QWinTaskbarButton(self)
+            button.setWindow(self.windowHandle())
+            self.icon_progress_bar = button.progress()
 
         if len(argv) > 1:
             path = argv[1]
@@ -53,9 +57,10 @@ class AppWindow(QMainWindow):
     def start_progress_bar(self, maximum):
         self.progress_bar_counter = 0
 
-        self.icon_progress_bar.setValue(0)
-        self.icon_progress_bar.setVisible(True)
-        self.icon_progress_bar.setMaximum(maximum)
+        if is_win:
+            self.icon_progress_bar.setValue(0)
+            self.icon_progress_bar.setVisible(True)
+            self.icon_progress_bar.setMaximum(maximum)
 
         self.ui.progress_bar.setValue(0)
         self.ui.progress_bar.setEnabled(True)
@@ -63,14 +68,16 @@ class AppWindow(QMainWindow):
 
     def increment_progress_bar(self):
         self.progress_bar_counter += 1
-        self.icon_progress_bar.setValue(self.progress_bar_counter)
         self.ui.progress_bar.setValue(self.progress_bar_counter)
+        if is_win:
+            self.icon_progress_bar.setValue(self.progress_bar_counter)
 
     def stop_progress_bar(self):
-        self.icon_progress_bar.setValue(0)
-        self.icon_progress_bar.setVisible(False)
         self.ui.progress_bar.setValue(0)
         self.ui.progress_bar.setEnabled(False)
+        if is_win:
+            self.icon_progress_bar.setValue(0)
+            self.icon_progress_bar.setVisible(False)
 
     def new_book_pressed(self):
         self.book = None
@@ -254,13 +261,13 @@ class AppWindow(QMainWindow):
         about_dialog = QMessageBox(self)
         about_dialog.setWindowTitle("About")
         about_dialog.setText(
-                "<div style=\"text-align: center\">" +
-                "<p>Created by InsoPL</p>" +
-                "<p>Distributed Under MIT License</p>" +
-                "<p>More info and source code avalible</p>" +
-                "<p><a href=\"https://github.com/insoPL/WuxiaDownloader\" style=\"color: #cccccc\">https://github.com/insoPL/WuxiaDownloader</a></p>"+
-                "</div>"
-                )
+            "<div style=\"text-align: center\">" +
+            "<p>Created by InsoPL</p>" +
+            "<p>Distributed Under MIT License</p>" +
+            "<p>More info and source code avalible</p>" +
+            "<p><a href=\"https://github.com/insoPL/WuxiaDownloader\" style=\"color: #cccccc\">https://github.com/insoPL/WuxiaDownloader</a></p>"+
+            "</div>"
+        )
 
         about_dialog.show()
 
