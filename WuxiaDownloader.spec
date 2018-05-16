@@ -4,7 +4,7 @@ from sys import platform
 
 if platform == 'darwin':
     icon_path = 'ui\images\icon.icns'
-elif platform == 'linux2':
+elif platform == 'linux':
     icon_path = 'ui\images\icon.png'
 else:
     icon_path = 'ui\images\icon.ico'
@@ -38,4 +38,16 @@ exe = EXE(pyz,
           strip=False,
           upx=True,
           runtime_tmpdir=None,
-          console=False , icon=icon_path)
+          console=False,
+          icon=icon_path )
+coll = COLLECT(exe,
+               a.binaries,
+               a.zipfiles,
+               a.datas,
+               strip=False,
+               upx=True,
+               name='WuxiaDownloader')
+app = BUNDLE(coll,
+             name='WuxiaDownloader.app'
+             icon=icon_path
+             bundle_identifier = 'com.insopl.wuxiadownloader' )
