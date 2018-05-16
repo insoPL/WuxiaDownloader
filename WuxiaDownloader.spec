@@ -1,10 +1,17 @@
 # -*- mode: python -*-
 
+from sys import platform
+
+if platform == 'darwin'
+    icon_path = 'ui\images\icon.icns'
+else
+    icon_path = 'ui\images\icon.ico'
+
 block_cipher = None
 
 
 a = Analysis(['main.py'],
-             pathex=['C:\\Users\\�ukasz\\PycharmProjects\\wuxiaworld-to-epub'],
+             pathex=[],
              binaries=[],
              datas=[],
              hiddenimports=[],
@@ -29,4 +36,4 @@ exe = EXE(pyz,
           strip=False,
           upx=True,
           runtime_tmpdir=None,
-          console=False , icon='ui\images\icon.ico')
+          console=False , icon=icon_path)

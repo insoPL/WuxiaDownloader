@@ -8,8 +8,9 @@ from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
 from cover_downloader import download_cover
-from PyInstaller.compat import is_win
 
+
+is_win = sys.platform == 'win32'
 if is_win:
     from PyQt5.QtWinExtras import QWinTaskbarButton
 
