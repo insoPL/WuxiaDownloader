@@ -2,9 +2,11 @@
 
 from sys import platform
 
-if platform == 'darwin'
+if platform == 'darwin':
     icon_path = 'ui\images\icon.icns'
-else
+elif platform == 'linux2':
+    icon_path = 'ui\images\icon.png'
+else:
     icon_path = 'ui\images\icon.ico'
 
 block_cipher = None
