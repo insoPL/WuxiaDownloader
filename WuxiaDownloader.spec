@@ -3,11 +3,11 @@
 from sys import platform
 
 if platform == 'darwin':
-    icon_path = 'ui\images\icon.icns'
+    icon_path = 'ui/images/icon.icns'
 elif platform == 'linux':
-    icon_path = 'ui\images\icon.png'
+    icon_path = 'ui/images/icon.png'
 else:
-    icon_path = 'ui\images\icon.ico'
+    icon_path = 'ui/images/icon.ico'
 
 block_cipher = None
 
@@ -46,7 +46,7 @@ coll = COLLECT(exe,
                a.datas,
                strip=False,
                upx=True,
-               name='WuxiaDownloader')
+               name='wuxia')
 app = BUNDLE(coll,
              name='WuxiaDownloader.app',
              icon=icon_path,
