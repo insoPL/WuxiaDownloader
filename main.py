@@ -56,6 +56,9 @@ class AppWindow(QMainWindow):
                 self.load_epub_from_file(path)
 
     def start_progress_bar(self, maximum):
+        if maximum < 1:
+            return
+
         self.progress_bar_counter = 0
 
         if is_win:
