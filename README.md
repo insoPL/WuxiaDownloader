@@ -8,10 +8,11 @@ and clicking "update" button.
 
 ## Dependencies
 
-For program to run you need following libraries:
+For program to compile you need following libraries:
 * [PyQt5](https://www.riverbankcomputing.com/software/pyqt)
 * [BeautifulSoup4](https://www.crummy.com/software/BeautifulSoup/)
 * [ebooklib](https://github.com/aerkalov/ebooklib)
+* [Reqests](http://docs.python-requests.org/en/master/)
 
 ## Compiling
 
@@ -26,10 +27,11 @@ pyrcc5 ui\resources.qrc > ui_res\resources_rc.py
 ## Creating single executable file
 
 Executable files can be created using pyinstaller
-
-### Widnows
-There is pyinstaller's .spec file in main cataloge configured to export program to single exe file.
-You just need to update path inside pathex
+There is pyinstaller's .spec file in main catalogue ("WuxiaDownloader.spec") configured to export program to single executable file.
+It was tested on:
+* MacOS
+* Windows 10
+* Ubuntu 16.04
 
 ## License
 
