@@ -13,10 +13,13 @@ def download_cover(url):
         raise ValueError
     book_title = book_title.get_text()
 
-    cover_img_url = "https://www.wuxiaworld.com"+soup.find('img', class_='media-object')
+    cover_img_url = soup.find('img', class_='media-object')
     if cover_img_url is None:
         raise ValueError
     cover_img_url = cover_img_url.get("src")
+
+    if "https://" not in cover_img_url:
+        cover_img_url = "https://www.wuxiaworld.com"+cover_img_url
 
     response = requests.get(cover_img_url)
     cover_img = response.content
