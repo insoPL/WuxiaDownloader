@@ -8,13 +8,22 @@ def download_cover(url):
     page = requests.get(url)
     soup = BeautifulSoup(page.content, 'html.parser')
 
-    book_title = soup.find('h4').get_text()
+    book_title = soup.find('h4')
+    if book_title is None:
+        raise ValueError
+    book_title = book_title.get_text()
 
-    cover_img_url = "https://www.wuxiaworld.com"+soup.find('img', class_='media-object').get("src")
+    cover_img_url = "https://www.wuxiaworld.com"+soup.find('img', class_='media-object')
+    if cover_img_url is None:
+        raise ValueError
+    cover_img_url = cover_img_url.get("src")
+
     response = requests.get(cover_img_url)
     cover_img = response.content
 
     panels = soup.find_all("div", class_="panel panel-default")
+    if panels is None:
+        raise ValueError
 
     books = dict()
     for book in panels:

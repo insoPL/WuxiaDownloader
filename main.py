@@ -8,7 +8,7 @@ from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
 from cover_downloader import download_cover
-
+from requests.exceptions import RequestException
 
 is_win = sys.platform == 'win32'
 if is_win:
@@ -148,7 +148,14 @@ class AppWindow(QMainWindow):
         url = self.ui.novel_url.text()
         self.log("Downloading from "+url)
 
-        self.title, self.cover, volumes_dict = download_cover(self.ui.novel_url.text())
+        try:
+            self.title, self.cover, volumes_dict = download_cover(self.ui.novel_url.text())
+        except RequestException:
+            self.log("Connection error. Check if your Url is valid.")
+            return
+        except ValueError:
+            self.log("Website parsing error. Check if your Url is valid.")
+            return
 
         self.log("Downloading book " + self.title)
 
