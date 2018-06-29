@@ -9,7 +9,7 @@ from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
 from cover_downloader import download_cover
 from requests.exceptions import RequestException
-
+from update_window import check_for_updates
 is_win = sys.platform == 'win32'
 if is_win:
     from PyQt5.QtWinExtras import QWinTaskbarButton
@@ -54,6 +54,8 @@ class AppWindow(QMainWindow):
             path = argv[1]
             if path[-4:] == "epub":  # if path is a file that name ends with "epub"
                 self.load_epub_from_file(path)
+
+        check_for_updates()
 
     def start_progress_bar(self, maximum):
         if maximum < 1:
