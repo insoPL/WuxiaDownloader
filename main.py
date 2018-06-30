@@ -25,6 +25,7 @@ class AppWindow(QMainWindow):
         self.book = None
         self.cover = None
         self.title = None
+        self.version = 1.0
 
         self.setWindowTitle("WuxiaDownloader")
 
@@ -55,7 +56,7 @@ class AppWindow(QMainWindow):
             if path[-4:] == "epub":  # if path is a file that name ends with "epub"
                 self.load_epub_from_file(path)
 
-        check_for_updates()
+        check_for_updates(self.version)
 
     def start_progress_bar(self, maximum):
         if maximum < 1:
