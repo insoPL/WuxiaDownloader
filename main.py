@@ -9,7 +9,7 @@ from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
 from cover_downloader import download_cover
 from requests.exceptions import RequestException
-from update_window import check_for_updates
+import update_window
 is_win = sys.platform == 'win32'
 if is_win:
     from PyQt5.QtWinExtras import QWinTaskbarButton
@@ -25,7 +25,7 @@ class AppWindow(QMainWindow):
         self.book = None
         self.cover = None
         self.title = None
-        self.version = 1.0
+        self.version = 1.1
 
         self.setWindowTitle("WuxiaDownloader")
 
@@ -37,6 +37,7 @@ class AppWindow(QMainWindow):
         self.ui.actionExit.triggered.connect(self.close)
         self.ui.actionNewBook.triggered.connect(self.new_book_pressed)
         self.ui.actionAbout.triggered.connect(self.show_about)
+        self.ui.actionCheck_For_Updates.triggered.connect(self.check_for_updates)
         self.ui.novel_url.setText("https://www.wuxiaworld.com/novel/against-the-gods")
 
         self.ui.actionNewBook.setShortcut('Ctrl+N')
@@ -56,7 +57,8 @@ class AppWindow(QMainWindow):
             if path[-4:] == "epub":  # if path is a file that name ends with "epub"
                 self.load_epub_from_file(path)
 
-        check_for_updates(self.version)
+    def check_for_updates(self):
+        update_window.check_for_updates(self.version)
 
     def start_progress_bar(self, maximum):
         if maximum < 1:
