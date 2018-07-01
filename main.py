@@ -25,7 +25,7 @@ class AppWindow(QMainWindow):
         self.book = None
         self.cover = None
         self.title = None
-        self.version = 1.1
+        self.version = 1.0
 
         self.setWindowTitle("WuxiaDownloader")
 
@@ -278,6 +278,7 @@ class AppWindow(QMainWindow):
         about_dialog.setWindowTitle("About")
         about_dialog.setText(
             "<div style=\"text-align: center\">" +
+            "<p>WuxiaDownloader "+str(self.version)+"</p>" +
             "<p>Created by InsoPL</p>" +
             "<p>Distributed Under MIT License</p>" +
             "<p>More info and source code avalible</p>" +
