@@ -10,27 +10,27 @@ class DownloaderThread(QThread):
     end_of_download = pyqtSignal(str)
     new_chapter = pyqtSignal(str, str)
 
-    def __init__(self, list_of_chapters):  # list of tuples (title, url)
+    def __init__(self, chapter):  # list of tuples (title, url)
         self.running = True
-        self.list_of_chapters = list_of_chapters
+        self.chapter = chapter
         QThread.__init__(self)
 
     def run(self):
-        for chapter_title, chapter_url in self.list_of_chapters:
-            try:
-                text = _download_and_parse("https://www.wuxiaworld.com"+chapter_url)
-            except RequestException:
-                logging.error("RequestException while downloading chapters")
-                self.end_of_download.emit("RequestException")
-                return
-            except ValueError:
-                logging.error("Parsing Error")
-                self.end_of_download.emit("Parsing Error")
-                return
-            if not self.running:
-                self.end_of_download.emit("Stoped")
-                return
-            self.new_chapter.emit(chapter_title, text)
+        chapter_title, chapter_url = self.chapter
+        try:
+            text = _download_and_parse("https://www.wuxiaworld.com"+chapter_url)
+        except RequestException:
+            logging.error("RequestException while downloading chapters")
+            self.end_of_download.emit("RequestException")
+            return
+        except ValueError:
+            logging.error("Parsing Error")
+            self.end_of_download.emit("Parsing Error")
+            return
+        if not self.running:
+            self.end_of_download.emit("Stoped")
+            return
+        self.new_chapter.emit(chapter_title, text)
         self.end_of_download.emit("end")
 
     def __del__(self):

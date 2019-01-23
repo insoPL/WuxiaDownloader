@@ -25,7 +25,9 @@ class AppWindow(QMainWindow):
         self.book = None
         self.cover = None
         self.title = None
-        self.version = 1.0
+        self.version = 1.1
+        self.titles_of_chapter = list()
+        self.full_chapters = dict()
 
         self.setWindowTitle("WuxiaDownloader")
 
@@ -170,6 +172,7 @@ class AppWindow(QMainWindow):
         choosen_volume = choose_volume(volumes_dict)
         if choosen_volume is None:
             return
+        self.titles_of_chapter, _ = zip(*volumes_dict[choosen_volume])
 
         self.log("downloading volume: " + choosen_volume)
         self.book = Ebook()
@@ -181,13 +184,12 @@ class AppWindow(QMainWindow):
         self.ui.download_button.setDisabled(True)
         self.ui.stop_button.setEnabled(True)
 
-        self.downloader_thread = DownloaderThread(volumes_dict[choosen_volume])
-        self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
-        self.downloader_thread.end_of_download.connect(self.end_of_download)
-
         self.start_progress_bar(len(volumes_dict[choosen_volume]))
 
-        self.downloader_thread.start()
+        self.downloader_threads = [DownloaderThread(chapter) for chapter in volumes_dict[choosen_volume]]
+        for downloader_thread in self.downloader_threads:
+            downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
+            downloader_thread.start()
 
     def update_button_pressed(self):
         url = self.ui.novel_url.text()
@@ -229,16 +231,19 @@ class AppWindow(QMainWindow):
         self.downloader_thread.start()
 
     def new_chapter_downloaded(self, title, text):
+        self.full_chapters[title] = text
         self.increment_progress_bar()
         self.log(title)
-        self.book.add_chapter(title, text)
+        if set(self.titles_of_chapter) == set(self.full_chapters.keys()):
+            self.end_of_download()
 
-    def end_of_download(self, return_code):
-        if return_code == "Parsing Error" or return_code == "RequestException":
-            self.log("Something went wrong while downloading. Is url valid?")
-        elif return_code == "Stoped":
-            self.log("Downloading stopped. Please click button \'update\' to continue.")
+    def end_of_download(self):
         self.log("Download ended")
+
+        for title in self.titles_of_chapter:
+            self.book.add_chapter(title, self.full_chapters[title])
+        self.titles_of_chapter = list()
+        self.full_chapters = dict()
 
         self.ui.actionSave_as.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
