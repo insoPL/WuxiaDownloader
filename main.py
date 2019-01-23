@@ -33,7 +33,7 @@ class AppWindow(QMainWindow):
         self.ui.actionSave.triggered.connect(self.save_button_pressed)
         self.ui.actionSave_as.triggered.connect(self.save_to_button_pressed)
         self.ui.actionopen_epub_file.triggered.connect(self.open_epub_button_pressed)
-        self.ui.abort_button.clicked.connect(self.abort_button_pressed)
+        self.ui.stop_button.clicked.connect(self.stop_button_pressed)
         self.ui.actionExit.triggered.connect(self.close)
         self.ui.actionNewBook.triggered.connect(self.new_book_pressed)
         self.ui.actionAbout.triggered.connect(self.show_about)
@@ -179,7 +179,7 @@ class AppWindow(QMainWindow):
         self.book_status_update()
 
         self.ui.download_button.setDisabled(True)
-        self.ui.abort_button.setEnabled(True)
+        self.ui.stop_button.setEnabled(True)
 
         self.downloader_thread = DownloaderThread(volumes_dict[choosen_volume])
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
@@ -193,7 +193,14 @@ class AppWindow(QMainWindow):
         url = self.ui.novel_url.text()
         self.log("Downloading from "+url)
 
-        self.title, self.cover, volumes_dict = download_cover(self.ui.novel_url.text())
+        try:
+            self.title, self.cover, volumes_dict = download_cover(self.ui.novel_url.text())
+        except RequestException:
+            self.log("Connection error. Check if your Url is valid.")
+            return
+        except ValueError:
+            self.log("Website parsing error. Check if your Url is valid.")
+            return
 
         self.log("Downloading " + self.title)
 
@@ -202,7 +209,7 @@ class AppWindow(QMainWindow):
         self.log("downloading volume: " + choosen_volume)
 
         self.ui.download_button.setDisabled(True)
-        self.ui.abort_button.setEnabled(True)
+        self.ui.stop_button.setEnabled(True)
 
         chapters = volumes_dict[choosen_volume]
 
@@ -226,11 +233,15 @@ class AppWindow(QMainWindow):
         self.log(title)
         self.book.add_chapter(title, text)
 
-    def end_of_download(self):
+    def end_of_download(self, return_code):
+        if return_code == "Parsing Error" or return_code == "RequestException":
+            self.log("Something went wrong while downloading. Is url valid?")
+        elif return_code == "Stoped":
+            self.log("Downloading stopped. Please click button \'update\' to continue.")
         self.log("Download ended")
 
         self.ui.actionSave_as.setEnabled(True)
-        self.ui.abort_button.setDisabled(True)
+        self.ui.stop_button.setDisabled(True)
         self.ui.download_button.setEnabled(True)
         self.ui.actionNewBook.setEnabled(True)
 
@@ -238,8 +249,8 @@ class AppWindow(QMainWindow):
         self.log(self.book.status())
         self.change_update_mode(True)
 
-    def abort_button_pressed(self):
-        self.downloader_thread.running = False
+    def stop_button_pressed(self):
+        self.downloader_thread.end()
 
     def save_to_button_pressed(self):
         dlg = QFileDialog()

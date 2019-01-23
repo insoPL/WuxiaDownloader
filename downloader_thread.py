@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+import logging
 from PyQt5.QtCore import QThread, pyqtSignal
 import requests
+from requests.exceptions import RequestException
 from bs4 import BeautifulSoup
 
 
 class DownloaderThread(QThread):
-    end_of_download = pyqtSignal()
+    end_of_download = pyqtSignal(str)
     new_chapter = pyqtSignal(str, str)
 
     def __init__(self, list_of_chapters):  # list of tuples (title, url)
@@ -14,29 +16,29 @@ class DownloaderThread(QThread):
         QThread.__init__(self)
 
     def run(self):
-
         for chapter_title, chapter_url in self.list_of_chapters:
             try:
                 text = _download_and_parse("https://www.wuxiaworld.com"+chapter_url)
-            except EOFError:
-                self.end_of_download.emit()
+            except RequestException:
+                logging.error("RequestException while downloading chapters")
+                self.end_of_download.emit("RequestException")
                 return
-
-            if "Teaser" in chapter_title:
-                continue
-
+            except ValueError:
+                logging.error("Parsing Error")
+                self.end_of_download.emit("Parsing Error")
+                return
             if not self.running:
-                self.end_of_download.emit()
+                self.end_of_download.emit("Stoped")
                 return
-
             self.new_chapter.emit(chapter_title, text)
-
-        self.end_of_download.emit()
-        self.running = False
+        self.end_of_download.emit("end")
 
     def __del__(self):
         self.quit()
         self.wait()
+
+    def end(self):
+        self.running = False
 
 
 def _download_and_parse(url):
@@ -45,7 +47,7 @@ def _download_and_parse(url):
 
     article = soup.find('div', class_='fr-view')
     if article is None:
-        raise EOFError
+        raise ValueError
 
     content = list()
 

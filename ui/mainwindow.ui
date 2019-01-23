@@ -1333,12 +1333,12 @@ QDateEdit::down-arrow:focus {
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
-       <widget class="QPushButton" name="abort_button">
+       <widget class="QPushButton" name="stop_button">
         <property name="enabled">
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>End</string>
+         <string>Stop</string>
         </property>
        </widget>
       </item>
@@ -1425,19 +1425,6 @@ QDateEdit::down-arrow:focus {
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
-   </property>
-  </action>
-  <action name="actionasdfadsf">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>asdfadsf</string>
-   </property>
-  </action>
-  <action name="actionsadasd">
-   <property name="text">
-    <string>sadasd</string>
    </property>
   </action>
   <action name="actionAbout">
