@@ -1338,7 +1338,7 @@ QDateEdit::down-arrow:focus {
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>Stop</string>
+         <string>Cancel</string>
         </property>
        </widget>
       </item>

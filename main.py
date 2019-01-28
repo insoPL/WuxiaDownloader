@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import gc
 import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 from PyQt5.QtGui import QPixmap
@@ -10,6 +10,7 @@ from ui.choose_volume import choose_volume
 from cover_downloader import download_cover
 from requests.exceptions import RequestException
 import update_window
+import logging
 is_win = sys.platform == 'win32'
 if is_win:
     from PyQt5.QtWinExtras import QWinTaskbarButton
@@ -21,13 +22,11 @@ class AppWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.update_mode = False
-        self.downloader_thread = None
         self.book = None
         self.cover = None
         self.title = None
+        self.downloader_thread = None
         self.version = 1.1
-        self.titles_of_chapter = list()
-        self.full_chapters = dict()
 
         self.setWindowTitle("WuxiaDownloader")
 
@@ -137,6 +136,7 @@ class AppWindow(QMainWindow):
             self.ui.download_button.clicked.connect(self.download_button_pressed)
 
     def log(self, p_str):
+        logging.info(p_str)
         self.ui.log.append(p_str)
 
     def book_status_update(self):
@@ -154,9 +154,8 @@ class AppWindow(QMainWindow):
     def download_button_pressed(self):
         url = self.ui.novel_url.text()
         self.log("Downloading from "+url)
-
         try:
-            self.title, self.cover, volumes_dict = download_cover(self.ui.novel_url.text())
+            self.title, self.cover, volumes_dict = download_cover(url)
         except RequestException:
             self.log("Connection error. Check if your Url is valid.")
             return
@@ -169,27 +168,27 @@ class AppWindow(QMainWindow):
         for book_title, foo in volumes_dict.items():
             self.log(book_title)
 
-        choosen_volume = choose_volume(volumes_dict)
-        if choosen_volume is None:
+        chosen_volume = choose_volume(volumes_dict)
+        if chosen_volume is None:
             return
-        self.titles_of_chapter, _ = zip(*volumes_dict[choosen_volume])
+        chapters = volumes_dict[chosen_volume]
 
-        self.log("downloading volume: " + choosen_volume)
+        self.log("downloading volume: " + chosen_volume)
         self.book = Ebook()
-        self.book.source_url = self.ui.novel_url.text()
-        self.book.init(self.title, choosen_volume, self.cover)
+        self.book.source_url = url
+        self.book.init(self.title, chosen_volume, self.cover)
 
         self.book_status_update()
 
         self.ui.download_button.setDisabled(True)
         self.ui.stop_button.setEnabled(True)
 
-        self.start_progress_bar(len(volumes_dict[choosen_volume]))
+        self.start_progress_bar(len(chapters))
 
-        self.downloader_threads = [DownloaderThread(chapter) for chapter in volumes_dict[choosen_volume]]
-        for downloader_thread in self.downloader_threads:
-            downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
-            downloader_thread.start()
+        self.downloader_thread = DownloaderThread(chapters)
+        self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
+        self.downloader_thread.end_of_download.connect(self.end_of_download)
+        self.downloader_thread.start()
 
     def update_button_pressed(self):
         url = self.ui.novel_url.text()
@@ -221,29 +220,23 @@ class AppWindow(QMainWindow):
             if chapter_title == self.book.get_last_chapter_title():
                 break
         chapters = chapters[i:]
+        if len(chapters) == 0: return
+
+        self.start_progress_bar(len(chapters))
 
         self.downloader_thread = DownloaderThread(chapters)
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
         self.downloader_thread.end_of_download.connect(self.end_of_download)
 
-        self.start_progress_bar(len(chapters))
-
-        self.downloader_thread.start()
-
-    def new_chapter_downloaded(self, title, text):
-        self.full_chapters[title] = text
+    def new_chapter_downloaded(self, chapter_title):
         self.increment_progress_bar()
-        self.log(title)
-        if set(self.titles_of_chapter) == set(self.full_chapters.keys()):
-            self.end_of_download()
+        self.log(chapter_title)
 
     def end_of_download(self):
         self.log("Download ended")
 
-        for title in self.titles_of_chapter:
-            self.book.add_chapter(title, self.full_chapters[title])
-        self.titles_of_chapter = list()
-        self.full_chapters = dict()
+        for title, text in self.downloader_thread.ready_chapters:
+            self.book.add_chapter(title, text)
 
         self.ui.actionSave_as.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
@@ -255,7 +248,16 @@ class AppWindow(QMainWindow):
         self.change_update_mode(True)
 
     def stop_button_pressed(self):
-        self.downloader_thread.end()
+        self.downloader_thread.cancel()
+        self.downloader_thread = None
+        self.book = None
+        self.cover = None
+        self.title = None
+        self.ui.download_button.setEnabled(True)
+        self.ui.stop_button.setDisabled(True)
+        self.stop_progress_bar()
+
+        self.log("Download Canceled")
 
     def save_to_button_pressed(self):
         dlg = QFileDialog()
@@ -316,7 +318,11 @@ class AppWindow(QMainWindow):
         self.log(path)
 
 
-app = QApplication(sys.argv)
-w = AppWindow(sys.argv)
-w.show()
-sys.exit(app.exec_())
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    logging.info("Initializing application")
+    app = QApplication(sys.argv)
+    w = AppWindow(sys.argv)
+    logging.info("App ready")
+    w.show()
+    sys.exit(app.exec_())

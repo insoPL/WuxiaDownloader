@@ -1,49 +1,64 @@
 # -*- coding: utf-8 -*-
 import logging
-from PyQt5.QtCore import QThread, pyqtSignal
-import requests
-from requests.exceptions import RequestException
+
+from PyQt5.QtCore import QUrl, pyqtSignal, QThread, pyqtSlot
 from bs4 import BeautifulSoup
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 
 class DownloaderThread(QThread):
-    end_of_download = pyqtSignal(str)
-    new_chapter = pyqtSignal(str, str)
+    end_of_download = pyqtSignal()
+    new_chapter = pyqtSignal(str)
 
-    def __init__(self, chapter):  # list of tuples (title, url)
-        self.running = True
-        self.chapter = chapter
+    def __init__(self, list_of_chapters):  # list of tuples (title, url)
+        self.raw_list_of_chapters = list_of_chapters
+        self.network_manger = QNetworkAccessManager()
+        self.replys = set()
+        self.ready_chapters = list()
+        self.isCancelled = False
         QThread.__init__(self)
 
     def run(self):
-        chapter_title, chapter_url = self.chapter
-        try:
-            text = _download_and_parse("https://www.wuxiaworld.com"+chapter_url)
-        except RequestException:
-            logging.error("RequestException while downloading chapters")
-            self.end_of_download.emit("RequestException")
-            return
-        except ValueError:
-            logging.error("Parsing Error")
-            self.end_of_download.emit("Parsing Error")
-            return
-        if not self.running:
-            self.end_of_download.emit("Stoped")
-            return
-        self.new_chapter.emit(chapter_title, text)
-        self.end_of_download.emit("end")
+        list_of_titles, list_of_urls = zip(*self.raw_list_of_chapters)
+        list_of_qurls = [QUrl("https://www.wuxiaworld.com"+chapter_url) for chapter_url in list_of_urls]
+        for chapter_title, qurl in zip(list_of_titles, list_of_qurls):
+            request = QNetworkRequest(qurl)
+            reply = self.network_manger.get(request)
+            assert isinstance(reply, QNetworkReply)
+            chapter_reciver = self.generate_chapter_reciver(reply, chapter_title)
+            reply.finished.connect(chapter_reciver)
+            self.replys.add(reply)
+        self.exec()
+        logging.error("You shouldn't be here")
+
+    def generate_chapter_reciver(self, reply, chapter_title):
+        @pyqtSlot()
+        def chapter_reciver():
+            if not self.isCancelled:
+                site = reply.readAll()
+                text = parse(site)
+                self.ready_chapters.append((chapter_title, text))
+                self.new_chapter.emit(chapter_title)
+                self.replys.remove(reply)
+                if len(self.replys) == 0:
+                    self.end_of_download.emit()
+        return chapter_reciver
+
+    def cancel(self):
+        self.isCancelled = True
+        for reply in self.replys:
+            reply.abort()
+        self.quit()
 
     def __del__(self):
-        self.quit()
         self.wait()
 
-    def end(self):
-        self.running = False
 
+def parse(page):
+    if len(page) == 0:
+        return ""
 
-def _download_and_parse(url):
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, 'html.parser')
+    soup = BeautifulSoup(page, 'html.parser')
 
     article = soup.find('div', class_='fr-view')
     if article is None:
