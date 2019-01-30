@@ -7,14 +7,15 @@ from ui_res.mainwindow import Ui_MainWindow
 from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
-from cover_downloader import download_cover
+from cover_downloader import process_cover
 from requests.exceptions import RequestException
 import update_window
 import logging
 is_win = sys.platform == 'win32'
 if is_win:
     from PyQt5.QtWinExtras import QWinTaskbarButton
-
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
+from PyQt5.QtCore import QUrl
 
 class AppWindow(QMainWindow):
     def __init__(self, argv):
@@ -135,16 +136,16 @@ class AppWindow(QMainWindow):
 
     def download_button_pressed(self):
         url = self.ui.novel_url.text()
-
         self.log("Downloading cover from "+url)
-        try:
-            title, cover, volumes_dict = download_cover(url)
-        except RequestException:
-            self.log("Connection error. Check if your Url is valid.")
-            return
-        except ValueError:
-            self.log("Website parsing error. Check if your Url is valid.")
-            return
+        self.raw_cover_network_manager = QNetworkAccessManager()
+        self.raw_cover_reply = self.raw_cover_network_manager.get(QNetworkRequest(QUrl(url)))
+        self.raw_cover_reply.finished.connect(self.cover_retrived)
+
+    def cover_retrived(self):
+        title, cover, volumes_dict = process_cover(self.raw_cover_reply.readAll())
+        del self.raw_cover_network_manager
+        del self.raw_cover_reply
+        url = self.ui.novel_url.text()
         self.log("Downloading book " + title)
 
         if self.book is None:

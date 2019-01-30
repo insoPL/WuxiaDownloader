@@ -4,9 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 
 
-def download_cover(url):
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, 'html.parser')
+def process_cover(page):
+    soup = BeautifulSoup(page, 'html.parser')
 
     book_title = soup.find('h4')
     if book_title is None:

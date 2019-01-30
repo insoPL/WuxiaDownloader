@@ -12,7 +12,7 @@ class DownloaderThread(QThread):
 
     def __init__(self, list_of_chapters):  # list of tuples (title, url)
         self.raw_list_of_chapters = list_of_chapters
-        self.network_manger = QNetworkAccessManager()
+        self.network_manager = QNetworkAccessManager()
         self.replys = set()
         self.ready_chapters = dict()
         self.isCancelled = False
@@ -23,7 +23,7 @@ class DownloaderThread(QThread):
         list_of_qurls = [QUrl("https://www.wuxiaworld.com"+chapter_url) for chapter_url in list_of_urls]
         for chapter_title, qurl in zip(list_of_titles, list_of_qurls):
             request = QNetworkRequest(qurl)
-            reply = self.network_manger.get(request)
+            reply = self.network_manager.get(request)
             assert isinstance(reply, QNetworkReply)
             chapter_reciver = self.generate_chapter_reciver(reply, chapter_title)
             reply.finished.connect(chapter_reciver)
