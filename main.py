@@ -181,8 +181,10 @@ class AppWindow(QMainWindow):
     def end_of_download(self):
         self.log("Download ended")
 
-        for title, text in self.downloader_thread.ready_chapters:
-            self.book.add_chapter(title, text)
+        list_of_titles, _ = zip(*self.downloader_thread.raw_list_of_chapters)
+        for title in list_of_titles:
+            self.book.add_chapter(title, self.downloader_thread.ready_chapters[title])
+        del self.downloader_thread
 
         self.ui.actionSave_as.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
@@ -194,8 +196,8 @@ class AppWindow(QMainWindow):
 
     def stop_button_pressed(self):
         self.downloader_thread.cancel()
-        self.downloader_thread = None
-        self.book = None
+        del self.downloader_thread
+        del self.book
         self.ui.download_button.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
         self.stop_progress_bar()

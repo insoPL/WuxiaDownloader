@@ -14,7 +14,7 @@ class DownloaderThread(QThread):
         self.raw_list_of_chapters = list_of_chapters
         self.network_manger = QNetworkAccessManager()
         self.replys = set()
-        self.ready_chapters = list()
+        self.ready_chapters = dict()
         self.isCancelled = False
         QThread.__init__(self)
 
@@ -37,7 +37,7 @@ class DownloaderThread(QThread):
             if not self.isCancelled:
                 site = reply.readAll()
                 text = parse(site)
-                self.ready_chapters.append((chapter_title, text))
+                self.ready_chapters[chapter_title] = text
                 self.new_chapter.emit(chapter_title)
                 self.replys.remove(reply)
                 if len(self.replys) == 0:
