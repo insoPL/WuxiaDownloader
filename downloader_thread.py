@@ -15,7 +15,6 @@ class DownloaderThread(QThread):
         self.network_manager = QNetworkAccessManager()
         self.replys = set()
         self.ready_chapters = dict()
-        self.isCancelled = False
         QThread.__init__(self)
 
     def run(self):
@@ -29,23 +28,22 @@ class DownloaderThread(QThread):
             reply.finished.connect(chapter_reciver)
             self.replys.add(reply)
         self.exec()
-        logging.error("You shouldn't be here")
 
     def generate_chapter_reciver(self, reply, chapter_title):
         @pyqtSlot()
         def chapter_reciver():
-            if not self.isCancelled:
+            reply.finished.disconnect()
+            self.replys.remove(reply)
+            if reply.isReadable():
                 site = reply.readAll()
                 text = parse(site)
                 self.ready_chapters[chapter_title] = text
                 self.new_chapter.emit(chapter_title)
-                self.replys.remove(reply)
                 if len(self.replys) == 0:
                     self.end_of_download.emit()
         return chapter_reciver
 
     def cancel(self):
-        self.isCancelled = True
         for reply in self.replys:
             reply.abort()
         self.quit()

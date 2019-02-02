@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
-import gc
 import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 from PyQt5.QtGui import QPixmap
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PyQt5.QtCore import QUrl
 from ui_res.mainwindow import Ui_MainWindow
 from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
 from cover_downloader import process_cover
-from requests.exceptions import RequestException
 import update_window
 import logging
 is_win = sys.platform == 'win32'
 if is_win:
     from PyQt5.QtWinExtras import QWinTaskbarButton
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
-from PyQt5.QtCore import QUrl
+
 
 class AppWindow(QMainWindow):
     def __init__(self, argv):
@@ -185,7 +184,7 @@ class AppWindow(QMainWindow):
         list_of_titles, _ = zip(*self.downloader_thread.raw_list_of_chapters)
         for title in list_of_titles:
             self.book.add_chapter(title, self.downloader_thread.ready_chapters[title])
-        del self.downloader_thread
+        self.downloader_thread = None
 
         self.ui.actionSave_as.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
@@ -196,9 +195,12 @@ class AppWindow(QMainWindow):
         self.log(self.book.status())
 
     def stop_button_pressed(self):
+        self.downloader_thread.new_chapter.disconnect()
+        self.downloader_thread.end_of_download.disconnect()
         self.downloader_thread.cancel()
-        del self.downloader_thread
-        del self.book
+        self.downloader_thread = None
+        self.book = None
+        self.book_status_update()
         self.ui.download_button.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
         self.stop_progress_bar()
