@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import logging
-
 from PyQt5.QtCore import QUrl, pyqtSignal, QThread, pyqtSlot
 from bs4 import BeautifulSoup
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest

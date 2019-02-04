@@ -4,16 +4,13 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtCore import QUrl
-from ui_res.mainwindow import Ui_MainWindow
+from ui.mainwindow import Ui_MainWindow
 from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
 from cover_downloader import process_cover
 import update_window
 import logging
-is_win = sys.platform == 'win32'
-if is_win:
-    from PyQt5.QtWinExtras import QWinTaskbarButton
 
 
 class AppWindow(QMainWindow):
@@ -43,12 +40,9 @@ class AppWindow(QMainWindow):
         self.ui.actionSave.setShortcut('Ctrl+S')
         self.ui.actionopen_epub_file.setShortcut('Ctrl+O')
 
-        self.show()
+        self.progress_bar = self.ui.downloadprogressbar
 
-        if is_win:
-            button = QWinTaskbarButton(self)
-            button.setWindow(self.windowHandle())
-            self.icon_progress_bar = button.progress()
+        self.show()
 
         if len(argv) > 1:
             path = argv[1]
@@ -57,34 +51,6 @@ class AppWindow(QMainWindow):
 
     def check_for_updates(self):
         update_window.check_for_updates(self.version)
-
-    def start_progress_bar(self, maximum):
-        if maximum < 1:
-            return
-
-        self.progress_bar_counter = 0
-
-        if is_win:
-            self.icon_progress_bar.setValue(0)
-            self.icon_progress_bar.setVisible(True)
-            self.icon_progress_bar.setMaximum(maximum)
-
-        self.ui.progress_bar.setValue(0)
-        self.ui.progress_bar.setEnabled(True)
-        self.ui.progress_bar.setMaximum(maximum)
-
-    def increment_progress_bar(self):
-        self.progress_bar_counter += 1
-        self.ui.progress_bar.setValue(self.progress_bar_counter)
-        if is_win:
-            self.icon_progress_bar.setValue(self.progress_bar_counter)
-
-    def stop_progress_bar(self):
-        self.ui.progress_bar.setValue(0)
-        self.ui.progress_bar.setEnabled(False)
-        if is_win:
-            self.icon_progress_bar.setValue(0)
-            self.icon_progress_bar.setVisible(False)
 
     def new_book_pressed(self):
         self.book = None
@@ -167,7 +133,7 @@ class AppWindow(QMainWindow):
         self.ui.download_button.setDisabled(True)
         self.ui.stop_button.setEnabled(True)
 
-        self.start_progress_bar(len(chapters))
+        self.progress_bar.start(len(chapters))
 
         self.downloader_thread = DownloaderThread(chapters)
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
@@ -175,7 +141,7 @@ class AppWindow(QMainWindow):
         self.downloader_thread.start()
 
     def new_chapter_downloaded(self, chapter_title):
-        self.increment_progress_bar()
+        self.progress_bar.increment_progress_bar()
         self.log(chapter_title)
 
     def end_of_download(self):
@@ -191,7 +157,7 @@ class AppWindow(QMainWindow):
         self.ui.download_button.setEnabled(True)
         self.ui.actionNewBook.setEnabled(True)
 
-        self.stop_progress_bar()
+        self.progress_bar.stop()
         self.log(self.book.status())
 
     def stop_button_pressed(self):
@@ -203,7 +169,7 @@ class AppWindow(QMainWindow):
         self.book_status_update()
         self.ui.download_button.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
-        self.stop_progress_bar()
+        self.progress_bar.stop()
 
         self.log("Download Canceled")
 
