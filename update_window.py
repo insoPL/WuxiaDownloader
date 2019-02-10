@@ -7,7 +7,7 @@ import requests
 
 
 def check_for_updates(current_version):
-    url = 'https://www.dropbox.com/s/51racakjuzc6nd0/version.txt?dl=1'
+    url = 'https://www.dropbox.com/s/2b5ikwr2r353bzs/version_debug.txt?dl=1'
     page = requests.get(url)
     if not page: return False
     update_log = page.text
@@ -27,7 +27,7 @@ def check_for_updates(current_version):
 
 
 def _parse_update_log(log):
-    update_log = log.split()
+    update_log = log.split('\r\n')
     new_version = update_log[0]
     update_url = update_log[1]
     update_log = "\n".join(update_log[2:])
@@ -45,7 +45,7 @@ class _UpdateWindow(QDialog):
         self.resize(400, 300)
 
         grid = QVBoxLayout()
-        grid.addWidget(QLabel("New version available Wuxiaworld Version "+str(new_version)))
+        grid.addWidget(QLabel("New version available Wuxiaworld Version "+str(new_version)+"'\n"))
         grid.addWidget(QLabel(update_log))
         grid.addStretch(1)
         grid.addLayout(self.cancel_accept_buttons())
