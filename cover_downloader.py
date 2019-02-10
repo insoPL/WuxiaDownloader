@@ -1,10 +1,45 @@
 # -*- coding: utf-8 -*-
-
-import requests
+from PyQt5.QtCore import QUrl, pyqtSignal, QThread
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from bs4 import BeautifulSoup
 
 
-def process_cover(page):
+class CoverDownloaderThread(QThread):
+    cover_download_end = pyqtSignal()
+    connection_error = pyqtSignal(str)
+
+    def __init__(self, url):  # list of tuples (title, url)
+        self._network_manager = QNetworkAccessManager()
+        self._url = QUrl(url)
+        self._reply = None
+
+        self.book_title = None
+        self.books = None
+        self.cover_img = None
+
+        QThread.__init__(self)
+
+    def run(self):
+        request = QNetworkRequest(self._url)
+        self._reply = self._network_manager.get(request)
+        self._reply.finished.connect(self.read_cover)
+        self.exec()
+
+    def read_cover(self):
+        self._reply.finished.disconnect()
+        page_data = self._reply.readAll()
+        self.book_title, cover_img_url, self.books = _process_cover(page_data)
+        request = QNetworkRequest(cover_img_url)
+        self._reply = self._network_manager.get(request)
+        self._reply.finished.connect(self.get_cover_img)
+
+    def get_cover_img(self):
+        self._reply.finished.disconnect()
+        self.cover_img = self._reply.readAll()
+        self.cover_download_end.emit()
+
+
+def _process_cover(page):
     soup = BeautifulSoup(page, 'html.parser')
 
     book_title = soup.find('h4')
@@ -20,8 +55,7 @@ def process_cover(page):
     if "https://" not in cover_img_url:
         cover_img_url = "https://www.wuxiaworld.com"+cover_img_url
 
-    response = requests.get(cover_img_url)
-    cover_img = response.content
+    cover_img_url = QUrl(cover_img_url)
 
     panels = soup.find_all("div", class_="panel panel-default")
     if panels is None:
@@ -40,4 +74,4 @@ def process_cover(page):
 
         books[title] = chapter_url_list
 
-    return book_title, cover_img, books
+    return book_title, cover_img_url, books

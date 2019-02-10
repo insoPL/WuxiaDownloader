@@ -7,6 +7,7 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkReques
 class DownloaderThread(QThread):
     end_of_download = pyqtSignal()
     new_chapter = pyqtSignal(str)
+    connection_error = pyqtSignal(str)
 
     def __init__(self, list_of_chapters):  # list of tuples (title, url)
         self.raw_list_of_chapters = list_of_chapters
@@ -30,6 +31,9 @@ class DownloaderThread(QThread):
     def generate_chapter_reciver(self, reply, chapter_title):
         @pyqtSlot()
         def chapter_reciver():
+            err = reply.errorString()
+            if err != "Unknown error":
+                self.connection_error.emit(err)
             reply.finished.disconnect()
             self.replys.remove(reply)
             if reply.isReadable():

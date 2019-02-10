@@ -2,13 +2,11 @@
 import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PyQt5.QtCore import QUrl
 from ui.mainwindow import Ui_MainWindow
 from epub_exporter import Ebook
 from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
-from cover_downloader import process_cover
+from cover_downloader import CoverDownloaderThread
 import update_window
 import logging
 
@@ -100,22 +98,26 @@ class AppWindow(QMainWindow):
         self.ui.book_info.setText(self.book.status())
 
     def download_button_pressed(self):
+        self.ui.download_button.setDisabled(True)
         url = self.ui.novel_url.text()
         self.log("Downloading cover from "+url)
-        self.raw_cover_network_manager = QNetworkAccessManager()
-        self.raw_cover_reply = self.raw_cover_network_manager.get(QNetworkRequest(QUrl(url)))
-        self.raw_cover_reply.finished.connect(self.cover_retrived)
+        self.downloader_thread = CoverDownloaderThread(url)
+        self.downloader_thread.cover_download_end.connect(self.cover_retrived)
+        self.downloader_thread.start()
 
     def cover_retrived(self):
-        title, cover, volumes_dict = process_cover(self.raw_cover_reply.readAll())
-        del self.raw_cover_network_manager
-        del self.raw_cover_reply
+        self.downloader_thread.cover_download_end.disconnect()
+        title = self.downloader_thread.book_title
+        volumes_dict = self.downloader_thread.books
+        cover = self.downloader_thread.cover_img
+        self.downloader_thread = None
         url = self.ui.novel_url.text()
         self.log("Downloading book " + title)
 
         if self.book is None:
             chosen_volume = choose_volume(volumes_dict)
             if chosen_volume is None:
+                self.ui.download_button.setEnabled(True)
                 return
             self.log("downloading volume: " + chosen_volume)
             chapters = volumes_dict[chosen_volume]
@@ -127,16 +129,17 @@ class AppWindow(QMainWindow):
             self.log("downloading volume: " + chosen_volume)
             chapters = [(a, b) for a, b in volumes_dict[chosen_volume] if a not in self.book.get_titles_of_chapters()]
             if len(chapters) == 0:
+                self.ui.download_button.setEnabled(True)
                 self.log("Book is already up-to-date")
                 return
 
-        self.ui.download_button.setDisabled(True)
         self.ui.stop_button.setEnabled(True)
 
         self.progress_bar.start(len(chapters))
 
         self.downloader_thread = DownloaderThread(chapters)
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
+        self.downloader_thread.connection_error.connect(self.network_error)
         self.downloader_thread.end_of_download.connect(self.end_of_download)
         self.downloader_thread.start()
 
@@ -217,8 +220,32 @@ class AppWindow(QMainWindow):
             "<p><a href=\"https://github.com/insoPL/WuxiaDownloader\" style=\"color: #cccccc\">https://github.com/insoPL/WuxiaDownloader</a></p>"+
             "</div>"
         )
-
         about_dialog.show()
+
+    def process_netowrk_reply(self, reply):
+        if not reply.isReadable():
+            self.network_error("Response is unreadable")
+            return
+        if not reply.errorString() == "Unknown error":
+            self.network_error(reply.errorString())
+        return reply.readAll()
+
+    def network_error(self, msg):
+        self.downloader_thread.new_chapter.disconnect()
+        self.downloader_thread.end_of_download.disconnect()
+        self.downloader_thread.connection_error.disconnect()
+
+        error_dialog = QMessageBox(self)
+        error_dialog.setWindowTitle("Connection Error")
+        error_dialog.setText(
+            "<div style=\"text-align: center\">" +
+            "<p>Connection Error\"</p>" +
+            "<p>"+msg+"\"</p>" +
+            "<p>Please check if your url is valid</p>" +
+            "<p>and your internet connection</p>" +
+            "</div>"
+        )
+        error_dialog.show()
 
     def dragEnterEvent(self, e):
         data = e.mimeData().text()

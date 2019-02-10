@@ -6,10 +6,10 @@ from PyQt5.QtDesigner import QPyDesignerCustomWidgetPlugin
 from download_progress_bar import DownloadProgressBar
 
 
-class LedPlugin(QPyDesignerCustomWidgetPlugin):
+class DownloadProgressBarPlugin(QPyDesignerCustomWidgetPlugin):
 
     def __init__(self, parent=None):
-        super(LedPlugin, self).__init__(parent)
+        super(DownloadProgressBarPlugin, self).__init__(parent)
 
         self.initialized = False
 
