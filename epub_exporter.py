@@ -52,7 +52,8 @@ class Ebook:
         text += "You have " + str(len(self._chapters)) + " chapters loaded."
         return text
 
-    def add_chapter(self, title, text):
+    def add_chapter(self, chapter):
+        title, text = chapter
         chapter = epub.EpubHtml(title=title, file_name="chapter" + str(len(self._chapters)) + '.xhtml', lang='en')
 
         chapter.content = u'<h1>' + title + '</h1>' + text

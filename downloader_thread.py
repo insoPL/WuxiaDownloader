@@ -10,43 +10,51 @@ class DownloaderThread(QThread):
     connection_error = pyqtSignal(str)
 
     def __init__(self, list_of_chapters):  # list of tuples (title, url)
-        self.raw_list_of_chapters = list_of_chapters
-        self.network_manager = QNetworkAccessManager()
-        self.replys = set()
-        self.ready_chapters = dict()
+        self._raw_list_of_chapters = list_of_chapters
+        self._network_manager = QNetworkAccessManager()
+        self._replys = set()
+        self._ready_chapters = dict()
         QThread.__init__(self)
 
     def run(self):
-        list_of_titles, list_of_urls = zip(*self.raw_list_of_chapters)
+        list_of_titles, list_of_urls = zip(*self._raw_list_of_chapters)
         list_of_qurls = [QUrl("https://www.wuxiaworld.com"+chapter_url) for chapter_url in list_of_urls]
         for chapter_title, qurl in zip(list_of_titles, list_of_qurls):
             request = QNetworkRequest(qurl)
-            reply = self.network_manager.get(request)
+            reply = self._network_manager.get(request)
             assert isinstance(reply, QNetworkReply)
-            chapter_reciver = self.generate_chapter_reciver(reply, chapter_title)
+            chapter_reciver = self._generate_chapter_reciver(reply, chapter_title)
             reply.finished.connect(chapter_reciver)
-            self.replys.add(reply)
+            self._replys.add(reply)
         self.exec()
 
-    def generate_chapter_reciver(self, reply, chapter_title):
+    def _generate_chapter_reciver(self, reply, chapter_title):
         @pyqtSlot()
         def chapter_reciver():
             err = reply.errorString()
             if err != "Unknown error":
                 self.connection_error.emit(err)
             reply.finished.disconnect()
-            self.replys.remove(reply)
+            self._replys.remove(reply)
             if reply.isReadable():
                 site = reply.readAll()
-                text = parse(site)
-                self.ready_chapters[chapter_title] = text
+                text = _parse_chapter(site)
+                self._ready_chapters[chapter_title] = text
                 self.new_chapter.emit(chapter_title)
-                if len(self.replys) == 0:
+                if len(self._replys) == 0:
                     self.end_of_download.emit()
         return chapter_reciver
 
+    def get_chapters(self):
+        ret_list = list()
+        list_of_titles, _ = zip(*self._raw_list_of_chapters)
+        for title in list_of_titles:
+            packed_chapter = (title, self._ready_chapters[title])
+            ret_list.append(packed_chapter)
+        return packed_chapter
+
     def cancel(self):
-        for reply in self.replys:
+        for reply in self._replys:
             reply.abort()
         self.quit()
 
@@ -54,7 +62,7 @@ class DownloaderThread(QThread):
         self.wait()
 
 
-def parse(page):
+def _parse_chapter(page):
     if len(page) == 0:
         return ""
 
