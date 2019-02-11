@@ -31,9 +31,9 @@ class DownloaderThread(QThread):
     def _generate_chapter_reciver(self, reply, chapter_title):
         @pyqtSlot()
         def chapter_reciver():
-            err = reply.errorString()
-            if err != "Unknown error":
-                self.connection_error.emit(err)
+            if reply.error():
+                err_msg = reply.errorString()
+                self.connection_error.emit(err_msg)
             reply.finished.disconnect()
             self._replys.remove(reply)
             if reply.isReadable():
@@ -43,6 +43,8 @@ class DownloaderThread(QThread):
                 self.new_chapter.emit(chapter_title)
                 if len(self._replys) == 0:
                     self.end_of_download.emit()
+            else:
+                self.connection_error.emit("Reply unreadable")
         return chapter_reciver
 
     def get_chapters(self):
@@ -51,7 +53,7 @@ class DownloaderThread(QThread):
         for title in list_of_titles:
             packed_chapter = (title, self._ready_chapters[title])
             ret_list.append(packed_chapter)
-        return packed_chapter
+        return ret_list
 
     def cancel(self):
         for reply in self._replys:

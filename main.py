@@ -151,7 +151,7 @@ class AppWindow(QMainWindow):
         self.log("Download ended")
 
         chapters = self.downloader_thread.get_chapters()
-        self.book.add_chapter(chapters)
+        self.book.add_chapters(chapters)
         self.downloader_thread = None
 
         self.ui.actionSave_as.setEnabled(True)
@@ -221,14 +221,6 @@ class AppWindow(QMainWindow):
         )
         about_dialog.show()
 
-    def process_netowrk_reply(self, reply):
-        if not reply.isReadable():
-            self.network_error("Response is unreadable")
-            return
-        if not reply.errorString() == "Unknown error":
-            self.network_error(reply.errorString())
-        return reply.readAll()
-
     def network_error(self, msg):
         self.downloader_thread.new_chapter.disconnect()
         self.downloader_thread.end_of_download.disconnect()
@@ -238,13 +230,22 @@ class AppWindow(QMainWindow):
         error_dialog.setWindowTitle("Connection Error")
         error_dialog.setText(
             "<div style=\"text-align: center\">" +
-            "<p>Connection Error\"</p>" +
-            "<p>"+msg+"\"</p>" +
+            "<p>Connection Error</p>" +
+            "<p>"+msg+"</p>" +
             "<p>Please check if your url is valid</p>" +
             "<p>and your internet connection</p>" +
             "</div>"
         )
         error_dialog.show()
+
+        self.downloader_thread = None
+        self.book = None
+        self.book_status_update()
+        self.ui.download_button.setEnabled(True)
+        self.ui.stop_button.setDisabled(True)
+        self.progress_bar.stop()
+
+        self.log("Download Error: "+msg)
 
     def dragEnterEvent(self, e):
         data = e.mimeData().text()
