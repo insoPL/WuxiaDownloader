@@ -9,8 +9,12 @@ class CoverDownloaderThread(QThread):
     connection_error = pyqtSignal(str)
 
     def __init__(self, url):  # list of tuples (title, url)
-        self._network_manager = QNetworkAccessManager()
         self._url = QUrl(url)
+        if not self._url.isValid():
+            self.connection_error.emit("Url invalid")
+            return
+
+        self._network_manager = QNetworkAccessManager()
         self._reply = None
 
         self.book_title = None
@@ -27,16 +31,31 @@ class CoverDownloaderThread(QThread):
 
     def read_cover(self):
         self._reply.finished.disconnect()
-        page_data = self._reply.readAll()
-        self.book_title, cover_img_url, self.books = _process_cover(page_data)
-        request = QNetworkRequest(cover_img_url)
-        self._reply = self._network_manager.get(request)
-        self._reply.finished.connect(self.get_cover_img)
+        if self._reply.error():
+            err_msg = self._reply.errorString()
+            self.connection_error.emit(err_msg)
+            return
+        if self._reply.isReadable():
+            page_data = self._reply.readAll()
+            try:
+                self.book_title, cover_img_url, self.books = _process_cover(page_data)
+            except ValueError:
+                self.connection_error.emit("Cover parsing error")
+                return
+            request = QNetworkRequest(cover_img_url)
+            self._reply = self._network_manager.get(request)
+            self._reply.finished.connect(self.get_cover_img)
+        else:
+            self.connection_error.emit("Reply unreadable")
 
     def get_cover_img(self):
         self._reply.finished.disconnect()
-        self.cover_img = self._reply.readAll()
-        self.cover_download_end.emit()
+        if self._reply.error():
+            err_msg = self._reply.errorString()
+            self.connection_error.emit(err_msg)
+        if self._reply.isReadable():
+            self.cover_img = self._reply.readAll()
+            self.cover_download_end.emit()
 
 
 def _process_cover(page):

@@ -103,6 +103,7 @@ class AppWindow(QMainWindow):
         self.log("Downloading cover from "+url)
         self.downloader_thread = CoverDownloaderThread(url)
         self.downloader_thread.cover_download_end.connect(self.cover_retrived)
+        self.downloader_thread.connection_error.connect(self.network_error)
         self.downloader_thread.start()
 
     def cover_retrived(self):
@@ -222,9 +223,14 @@ class AppWindow(QMainWindow):
         about_dialog.show()
 
     def network_error(self, msg):
-        self.downloader_thread.new_chapter.disconnect()
-        self.downloader_thread.end_of_download.disconnect()
-        self.downloader_thread.connection_error.disconnect()
+        if isinstance(self.downloader_thread, DownloaderThread):
+            self.downloader_thread.new_chapter.disconnect()
+            self.downloader_thread.end_of_download.disconnect()
+            self.downloader_thread.connection_error.disconnect()
+            self.progress_bar.stop()
+        elif isinstance(self.downloader_thread, CoverDownloaderThread):
+            self.downloader_thread.cover_download_end.disconnect()
+            self.downloader_thread.connection_error.disconnect()
 
         error_dialog = QMessageBox(self)
         error_dialog.setWindowTitle("Connection Error")
@@ -243,7 +249,6 @@ class AppWindow(QMainWindow):
         self.book_status_update()
         self.ui.download_button.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
-        self.progress_bar.stop()
 
         self.log("Download Error: "+msg)
 

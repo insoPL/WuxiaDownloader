@@ -31,14 +31,19 @@ class DownloaderThread(QThread):
     def _generate_chapter_reciver(self, reply, chapter_title):
         @pyqtSlot()
         def chapter_reciver():
+            reply.finished.disconnect()
+            self._replys.remove(reply)
             if reply.error():
                 err_msg = reply.errorString()
                 self.connection_error.emit(err_msg)
-            reply.finished.disconnect()
-            self._replys.remove(reply)
+                return
             if reply.isReadable():
                 site = reply.readAll()
-                text = _parse_chapter(site)
+                try:
+                    text = _parse_chapter(site)
+                except ValueError:
+                    self.connection_error.emit("Chapter parsing error")
+                    return
                 self._ready_chapters[chapter_title] = text
                 self.new_chapter.emit(chapter_title)
                 if len(self._replys) == 0:
@@ -77,12 +82,13 @@ def _parse_chapter(page):
     content = list()
 
     all_verses = article.find_all('p')
+    if all_verses is None:
+        raise ValueError
 
     if "chapter" in all_verses[0].text.lower():  # if first verse contains word "chapter" delete it
         all_verses = all_verses[1:]
 
     for art in all_verses:
-
         foo = art.get_text()
         if len(foo) < 1:
             continue
