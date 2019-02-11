@@ -150,8 +150,8 @@ class AppWindow(QMainWindow):
     def end_of_download(self):
         self.log("Download ended")
 
-        for chapter in self.downloader_thread.get_chapters():
-            self.book.add_chapter(chapter)
+        chapters = self.downloader_thread.get_chapters()
+        self.book.add_chapter(chapters)
         self.downloader_thread = None
 
         self.ui.actionSave_as.setEnabled(True)
