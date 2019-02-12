@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
-import sys
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
-from PyQt5.QtGui import QPixmap
-from ui.mainwindow import Ui_MainWindow
-from epub_exporter import Ebook
-from downloader_thread import DownloaderThread
-from ui.choose_volume import choose_volume
-from cover_downloader import CoverDownloaderThread
-import update_window
 import logging
+import sys
+
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
+
+from cover_downloader import CoverDownloaderThread
+from downloader_thread import DownloaderThread
+from epub_exporter import Ebook
+from ui.choose_volume import choose_volume
+from ui.mainwindow import Ui_MainWindow
+from update_downloader import UpdateDownloaderThread
+from update_window import UpdateWindow
 
 
 class AppWindow(QMainWindow):
@@ -18,7 +21,7 @@ class AppWindow(QMainWindow):
         self.ui.setupUi(self)
         self.book = None
         self.downloader_thread = None
-        self.version = 1.1
+        self.version = 1.0
 
         self.setWindowTitle("WuxiaDownloader")
 
@@ -48,7 +51,28 @@ class AppWindow(QMainWindow):
                 self.load_epub_from_file(path)
 
     def check_for_updates(self):
-        update_window.check_for_updates(self.version)
+        self.downloader_thread = UpdateDownloaderThread()
+        self.downloader_thread.update_downloaded.connect(self.update_retrived)
+        self.downloader_thread.connection_error.connect(self.cover_retrived)
+        self.downloader_thread.start()
+
+    def update_retrived(self):
+        self.downloader_thread.update_downloaded.disconnect()
+        self.downloader_thread.connection_error.disconnect()
+        new_version = self.downloader_thread.new_version
+        update_url = self.downloader_thread.update_url
+        update_log = self.downloader_thread.update_log
+        self.downloader_thread = None
+
+        if self.version < new_version:
+            update_window = UpdateWindow(self.version, new_version, update_url, update_log)
+            update_window.exec()
+        else:
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle("WuxiaDownloader " + str(self.version))
+            msg_box.setText("Program is updated")
+            msg_box.exec_()
+        return True
 
     def new_book_pressed(self):
         self.book = None
