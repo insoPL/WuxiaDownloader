@@ -5,12 +5,12 @@ import sys
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 
-from cover_downloader import CoverDownloaderThread
-from downloader_thread import DownloaderThread
+from downloaders.cover_downloader import CoverDownloaderThread
+from downloaders.downloader_thread import DownloaderThread
 from epub_exporter import Ebook
 from ui.choose_volume import choose_volume
 from ui.mainwindow import Ui_MainWindow
-from update_downloader import UpdateDownloaderThread
+from downloaders.update_downloader import UpdateDownloaderThread
 from update_window import UpdateWindow
 
 
@@ -52,16 +52,14 @@ class AppWindow(QMainWindow):
 
     def check_for_updates(self):
         self.downloader_thread = UpdateDownloaderThread()
-        self.downloader_thread.update_downloaded.connect(self.update_retrived)
+        self.downloader_thread.download_finished.connect(self.update_retrived)
         self.downloader_thread.connection_error.connect(self.cover_retrived)
         self.downloader_thread.start()
 
     def update_retrived(self):
-        self.downloader_thread.update_downloaded.disconnect()
+        self.downloader_thread.download_finished.disconnect()
         self.downloader_thread.connection_error.disconnect()
-        new_version = self.downloader_thread.new_version
-        update_url = self.downloader_thread.update_url
-        update_log = self.downloader_thread.update_log
+        new_version, update_url, update_log = self.downloader_thread.get_data()
         self.downloader_thread = None
 
         if self.version < new_version:
