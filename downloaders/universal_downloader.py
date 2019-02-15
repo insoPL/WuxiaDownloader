@@ -1,30 +1,25 @@
-from PyQt5.QtCore import QUrl, pyqtSignal, QThread
-from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
+from PyQt5.QtCore import QUrl, pyqtSignal, QObject
+from PyQt5.QtNetwork import QNetworkRequest
 
 
-class UnversalDownloaderThread(QThread):
+class UnversalDownloaderThread(QObject):
     download_finished = pyqtSignal()
     connection_error = pyqtSignal(str)
 
-    def __init__(self, url):
-        self.qurl = QUrl(url)
-        if not self.qurl.isValid():
+    def __init__(self, url, network_manager, parser):
+        QObject.__init__(self)
+        self._parsed_data = None
+        self._parser = parser
+
+        qurl = QUrl(url)
+        if not qurl.isValid():
             self.connection_error.emit("Url invalid")
             return
+        request = QNetworkRequest(qurl)
+        self._reply = network_manager.get(request)
+        self._reply.finished.connect(self._data_retrived)
 
-        self._network_manager = QNetworkAccessManager()
-        self._reply = None
-        _parsed_data = None
-
-        QThread.__init__(self)
-
-    def run(self):
-        request = QNetworkRequest(self.qurl)
-        self._reply = self._network_manager.get(request)
-        self._reply.finished.connect(self.data_retrived)
-        self.exec()
-
-    def data_retrived(self):
+    def _data_retrived(self):
         self._reply.finished.disconnect()
         if self._reply.error():
             err_msg = self._reply.errorString()
@@ -33,7 +28,7 @@ class UnversalDownloaderThread(QThread):
         if self._reply.isReadable():
             page_data = self._reply.readAll()
             try:
-                self._parsed_data = self.parser(page_data)
+                self._parsed_data = self._parser(page_data)
             except ValueError:
                 self.connection_error.emit("Cover parsing error")
                 return
