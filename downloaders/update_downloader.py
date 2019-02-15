@@ -10,12 +10,13 @@ class UpdateDownloaderThread(QThread):
     connection_error = pyqtSignal(str)
 
     def __init__(self):
-        self.netman = QNetworkAccessManager()
+        self._network_manager = QNetworkAccessManager()
+        self.downloader = None
         QThread.__init__(self)
 
     def run(self):
         url = 'https://gist.githubusercontent.com/insoPL/4afc2af9011b030381d2459711dfefc7/raw/e1cdc190264f8b93dc143e8bde6671887cbb161f/debug_version'
-        self.downloader = UnversalDownloaderThread(url, self.netman, parser)
+        self.downloader = UnversalDownloaderThread(url, self._network_manager, parser)
         self.downloader.connection_error.connect(self.connection_error)
         self.downloader.download_finished.connect(self.download_finished)
         self.exec()

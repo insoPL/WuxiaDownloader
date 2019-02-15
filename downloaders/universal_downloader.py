@@ -2,11 +2,15 @@ from PyQt5.QtCore import QUrl, pyqtSignal, QObject
 from PyQt5.QtNetwork import QNetworkRequest
 
 
+def empty_parser(page):
+    return page
+
+
 class UnversalDownloaderThread(QObject):
     download_finished = pyqtSignal()
     connection_error = pyqtSignal(str)
 
-    def __init__(self, url, network_manager, parser):
+    def __init__(self, url, network_manager, parser=empty_parser):
         QObject.__init__(self)
         self._parsed_data = None
         self._parser = parser

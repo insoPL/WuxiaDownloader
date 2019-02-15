@@ -130,12 +130,10 @@ class AppWindow(QMainWindow):
 
     def cover_retrived(self):
         self.downloader_thread.cover_download_end.disconnect()
-        title = self.downloader_thread.book_title
-        volumes_dict = self.downloader_thread.books
-        cover = self.downloader_thread.cover_img
+        book_title, cover_img, volumes_dict = self.downloader_thread.get_data()
         self.downloader_thread = None
         url = self.ui.novel_url.text()
-        self.log("Downloading book " + title)
+        self.log("Downloading book " + book_title)
 
         if self.book is None:
             chosen_volume = choose_volume(volumes_dict)
@@ -145,7 +143,7 @@ class AppWindow(QMainWindow):
             self.log("downloading volume: " + chosen_volume)
             chapters = volumes_dict[chosen_volume]
 
-            self.book = Ebook(title, chosen_volume, cover, url)
+            self.book = Ebook(book_title, chosen_volume, cover_img, url)
             self.book_status_update()
         else:
             chosen_volume = self.book.volume_name

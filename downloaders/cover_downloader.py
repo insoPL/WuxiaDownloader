@@ -3,59 +3,35 @@ from PyQt5.QtCore import QUrl, pyqtSignal, QThread
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from bs4 import BeautifulSoup
 
+from downloaders.universal_downloader import UnversalDownloaderThread
+
 
 class CoverDownloaderThread(QThread):
     cover_download_end = pyqtSignal()
     connection_error = pyqtSignal(str)
 
     def __init__(self, url):  # list of tuples (title, url)
-        self._url = QUrl(url)
-        if not self._url.isValid():
-            self.connection_error.emit("Url invalid")
-            return
-
+        self._url = url
         self._network_manager = QNetworkAccessManager()
-        self._reply = None
-
-        self.book_title = None
-        self.books = None
-        self.cover_img = None
+        self.downloader = None
 
         QThread.__init__(self)
 
     def run(self):
-        request = QNetworkRequest(self._url)
-        self._reply = self._network_manager.get(request)
-        self._reply.finished.connect(self.read_cover)
+        self.downloader = UnversalDownloaderThread(self._url, self._network_manager, _process_cover)
+        self.downloader.connection_error.connect(self.connection_error)
+        self.downloader.download_finished.connect(self.read_cover)
         self.exec()
 
     def read_cover(self):
-        self._reply.finished.disconnect()
-        if self._reply.error():
-            err_msg = self._reply.errorString()
-            self.connection_error.emit(err_msg)
-            return
-        if self._reply.isReadable():
-            page_data = self._reply.readAll()
-            try:
-                self.book_title, cover_img_url, self.books = _process_cover(page_data)
-            except ValueError:
-                self.connection_error.emit("Cover parsing error")
-                return
-            request = QNetworkRequest(cover_img_url)
-            self._reply = self._network_manager.get(request)
-            self._reply.finished.connect(self.get_cover_img)
-        else:
-            self.connection_error.emit("Reply unreadable")
+        self.book_title, cover_img_url, self.books = self.downloader.get_data()
+        self.downloader = UnversalDownloaderThread(cover_img_url, self._network_manager)
+        self.downloader.download_finished.connect(self.cover_download_end)
+        self.downloader.connection_error.connect(self.connection_error)
 
-    def get_cover_img(self):
-        self._reply.finished.disconnect()
-        if self._reply.error():
-            err_msg = self._reply.errorString()
-            self.connection_error.emit(err_msg)
-        if self._reply.isReadable():
-            self.cover_img = self._reply.readAll()
-            self.cover_download_end.emit()
+    def get_data(self):
+        cover_img = self.downloader.get_data()
+        return self.book_title, cover_img, self.books
 
 
 def _process_cover(page):
