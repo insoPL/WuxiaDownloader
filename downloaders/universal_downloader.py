@@ -6,7 +6,7 @@ def empty_parser(page):
     return page
 
 
-class UnversalDownloaderThread(QObject):
+class UniversalDownloaderThread(QObject):
     download_finished = pyqtSignal()
     connection_error = pyqtSignal(str)
 
@@ -22,6 +22,9 @@ class UnversalDownloaderThread(QObject):
         request = QNetworkRequest(qurl)
         self._reply = network_manager.get(request)
         self._reply.finished.connect(self._data_retrived)
+
+    def abort(self):
+        self._reply.abort()
 
     def _data_retrived(self):
         self._reply.finished.disconnect()

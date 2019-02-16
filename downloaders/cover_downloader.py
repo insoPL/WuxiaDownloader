@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtCore import QUrl, pyqtSignal, QThread
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PyQt5.QtNetwork import QNetworkAccessManager
 from bs4 import BeautifulSoup
 
-from downloaders.universal_downloader import UnversalDownloaderThread
+from downloaders.universal_downloader import UniversalDownloaderThread
 
 
 class CoverDownloaderThread(QThread):
@@ -18,14 +18,14 @@ class CoverDownloaderThread(QThread):
         QThread.__init__(self)
 
     def run(self):
-        self.downloader = UnversalDownloaderThread(self._url, self._network_manager, _process_cover)
+        self.downloader = UniversalDownloaderThread(self._url, self._network_manager, _process_cover)
         self.downloader.connection_error.connect(self.connection_error)
         self.downloader.download_finished.connect(self.read_cover)
         self.exec()
 
     def read_cover(self):
         self.book_title, cover_img_url, self.books = self.downloader.get_data()
-        self.downloader = UnversalDownloaderThread(cover_img_url, self._network_manager)
+        self.downloader = UniversalDownloaderThread(cover_img_url, self._network_manager)
         self.downloader.download_finished.connect(self.cover_download_end)
         self.downloader.connection_error.connect(self.connection_error)
 

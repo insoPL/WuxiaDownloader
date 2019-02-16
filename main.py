@@ -7,10 +7,10 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 
 from downloaders.cover_downloader import CoverDownloaderThread
 from downloaders.downloader_thread import DownloaderThread
+from downloaders.update_downloader import UpdateDownloaderThread
 from epub_exporter import Ebook
 from ui.choose_volume import choose_volume
 from ui.mainwindow import Ui_MainWindow
-from downloaders.update_downloader import UpdateDownloaderThread
 from update_window import UpdateWindow
 
 
@@ -164,14 +164,13 @@ class AppWindow(QMainWindow):
         self.downloader_thread.end_of_download.connect(self.end_of_download)
         self.downloader_thread.start()
 
-    def new_chapter_downloaded(self, chapter_title):
+    def new_chapter_downloaded(self):
         self.progress_bar.increment_progress_bar()
-        self.log(chapter_title)
 
     def end_of_download(self):
         self.log("Download ended")
 
-        chapters = self.downloader_thread.get_chapters()
+        chapters = self.downloader_thread.get_data()
         self.book.add_chapters(chapters)
         self.downloader_thread = None
 
@@ -210,12 +209,11 @@ class AppWindow(QMainWindow):
             if ".epub" not in path:
                 path += ".epub"
 
-            self.log("Saving file to "+path)
             try:
                 self.book.save(path)
             except OSError:
                 self.log("Saving error: No permissions")
-
+            self.log("Epub saved: " + path)
     def save_button_pressed(self):
         if self.book.file_path is None:
             self.log("Save error")
