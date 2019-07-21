@@ -21,7 +21,7 @@ class AppWindow(QMainWindow):
         self.ui.setupUi(self)
         self.book = None
         self.downloader_thread = None
-        self.version = 1.0
+        self.version = 1.2
 
         self.setWindowTitle("WuxiaDownloader")
 
@@ -68,7 +68,7 @@ class AppWindow(QMainWindow):
         else:
             msg_box = QMessageBox()
             msg_box.setWindowTitle("WuxiaDownloader " + str(self.version))
-            msg_box.setText("Program is updated")
+            msg_box.setText("Program is already in its newest version")
             msg_box.exec_()
         return True
 
@@ -122,7 +122,7 @@ class AppWindow(QMainWindow):
     def download_button_pressed(self):
         self.ui.download_button.setDisabled(True)
         url = self.ui.novel_url.text()
-        self.log("Downloading cover from "+url)
+        self.log("Downloading cover from " + url)
         self.downloader_thread = CoverDownloaderThread(url)
         self.downloader_thread.cover_download_end.connect(self.cover_retrived)
         self.downloader_thread.connection_error.connect(self.network_error)
@@ -198,7 +198,7 @@ class AppWindow(QMainWindow):
     def save_to_button_pressed(self):
         dlg = QFileDialog()
         dlg.setAcceptMode(QFileDialog.AcceptSave)
-        default_name = (self.book.title+" "+self.book.volume_name)
+        default_name = (self.book.title + " " + self.book.volume_name)
         dlg.selectFile(default_name)
         dlg.setFileMode(QFileDialog.AnyFile)
         dlg.setNameFilter("eBook File (*.epub)")
@@ -214,6 +214,7 @@ class AppWindow(QMainWindow):
             except OSError:
                 self.log("Saving error: No permissions")
             self.log("Epub saved: " + path)
+
     def save_button_pressed(self):
         if self.book.file_path is None:
             self.log("Save error")
@@ -224,18 +225,18 @@ class AppWindow(QMainWindow):
             self.book.save(path)
         except OSError:
             self.log("Saving error: No permissions")
-        self.log("Epub saved: "+path)
+        self.log("Epub saved: " + path)
 
     def show_about(self):
         about_dialog = QMessageBox(self)
         about_dialog.setWindowTitle("About")
         about_dialog.setText(
             "<div style=\"text-align: center\">" +
-            "<p>WuxiaDownloader "+str(self.version)+"</p>" +
+            "<p>WuxiaDownloader " + str(self.version) + "</p>" +
             "<p>Created by InsoPL</p>" +
             "<p>Distributed Under MIT License</p>" +
             "<p>More info and source code avalible</p>" +
-            "<p><a href=\"https://github.com/insoPL/WuxiaDownloader\" style=\"color: #cccccc\">https://github.com/insoPL/WuxiaDownloader</a></p>"+
+            "<p><a href=\"https://github.com/insoPL/WuxiaDownloader\" style=\"color: #cccccc\">https://github.com/insoPL/WuxiaDownloader</a></p>" +
             "</div>"
         )
         about_dialog.show()
@@ -255,7 +256,7 @@ class AppWindow(QMainWindow):
         error_dialog.setText(
             "<div style=\"text-align: center\">" +
             "<p>Connection Error</p>" +
-            "<p>"+msg+"</p>" +
+            "<p>" + msg + "</p>" +
             "<p>Please check if your url is valid</p>" +
             "<p>and your internet connection</p>" +
             "</div>"
@@ -268,7 +269,7 @@ class AppWindow(QMainWindow):
         self.ui.download_button.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
 
-        self.log("Download Error: "+msg)
+        self.log("Download Error: " + msg)
 
     def dragEnterEvent(self, e):
         data = e.mimeData().text()

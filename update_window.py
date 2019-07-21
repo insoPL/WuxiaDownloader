@@ -11,11 +11,11 @@ class UpdateWindow(QDialog):
 
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
         self.setWindowIcon(QIcon(':/ui/images/icon.png'))
-        self.setWindowTitle("Wuxiaworld Version "+str(current_version))
+        self.setWindowTitle("Wuxiaworld Version " + str(current_version))
         self.resize(400, 300)
 
         grid = QVBoxLayout()
-        grid.addWidget(QLabel("New version available Wuxiaworld Version "+str(new_version)+"\n"))
+        grid.addWidget(QLabel("New version available Wuxiaworld Version " + str(new_version) + "\n"))
         grid.addWidget(QLabel(update_log))
         grid.addStretch(1)
         grid.addLayout(self.cancel_accept_buttons())
