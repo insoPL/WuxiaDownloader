@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
-
+import logging
 import sys
-from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
+
 from PyQt5.QtGui import QPixmap
-from ui_res.mainwindow import Ui_MainWindow
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
+
+from downloaders.cover_downloader import CoverDownloaderThread
+from downloaders.downloader_thread import DownloaderThread
+from downloaders.update_downloader import UpdateDownloaderThread
 from epub_exporter import Ebook
-from downloader_thread import DownloaderThread
 from ui.choose_volume import choose_volume
-from cover_downloader import download_cover
-from requests.exceptions import RequestException
-import update_window
-is_win = sys.platform == 'win32'
-if is_win:
-    from PyQt5.QtWinExtras import QWinTaskbarButton
+from ui.mainwindow import Ui_MainWindow
+from update_window import UpdateWindow
 
 
 class AppWindow(QMainWindow):
@@ -20,12 +19,9 @@ class AppWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.update_mode = False
-        self.downloader_thread = None
         self.book = None
-        self.cover = None
-        self.title = None
-        self.version = 1.0
+        self.downloader_thread = None
+        self.version = 1.2
 
         self.setWindowTitle("WuxiaDownloader")
 
@@ -45,12 +41,9 @@ class AppWindow(QMainWindow):
         self.ui.actionSave.setShortcut('Ctrl+S')
         self.ui.actionopen_epub_file.setShortcut('Ctrl+O')
 
-        self.show()
+        self.progress_bar = self.ui.downloadprogressbar
 
-        if is_win:
-            button = QWinTaskbarButton(self)
-            button.setWindow(self.windowHandle())
-            self.icon_progress_bar = button.progress()
+        self.show()
 
         if len(argv) > 1:
             path = argv[1]
@@ -58,44 +51,33 @@ class AppWindow(QMainWindow):
                 self.load_epub_from_file(path)
 
     def check_for_updates(self):
-        update_window.check_for_updates(self.version)
+        self.downloader_thread = UpdateDownloaderThread()
+        self.downloader_thread.download_finished.connect(self.update_retrived)
+        self.downloader_thread.connection_error.connect(self.cover_retrived)
+        self.downloader_thread.start()
 
-    def start_progress_bar(self, maximum):
-        if maximum < 1:
-            return
+    def update_retrived(self):
+        self.downloader_thread.download_finished.disconnect()
+        self.downloader_thread.connection_error.disconnect()
+        new_version, update_url, update_log = self.downloader_thread.get_data()
+        self.downloader_thread = None
 
-        self.progress_bar_counter = 0
-
-        if is_win:
-            self.icon_progress_bar.setValue(0)
-            self.icon_progress_bar.setVisible(True)
-            self.icon_progress_bar.setMaximum(maximum)
-
-        self.ui.progress_bar.setValue(0)
-        self.ui.progress_bar.setEnabled(True)
-        self.ui.progress_bar.setMaximum(maximum)
-
-    def increment_progress_bar(self):
-        self.progress_bar_counter += 1
-        self.ui.progress_bar.setValue(self.progress_bar_counter)
-        if is_win:
-            self.icon_progress_bar.setValue(self.progress_bar_counter)
-
-    def stop_progress_bar(self):
-        self.ui.progress_bar.setValue(0)
-        self.ui.progress_bar.setEnabled(False)
-        if is_win:
-            self.icon_progress_bar.setValue(0)
-            self.icon_progress_bar.setVisible(False)
+        if self.version < new_version:
+            update_window = UpdateWindow(self.version, new_version, update_url, update_log)
+            update_window.exec()
+        else:
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle("WuxiaDownloader " + str(self.version))
+            msg_box.setText("Program is already in its newest version")
+            msg_box.exec_()
+        return True
 
     def new_book_pressed(self):
         self.book = None
-        self.cover = None
-        self.title = None
-        self.change_update_mode(False)
         self.ui.actionNewBook.setDisabled(True)
         self.ui.actionSave_as.setDisabled(True)
         self.ui.actionSave.setDisabled(True)
+        self.book_status_update()
         self.log("Book deleted from memory")
 
     def open_epub_button_pressed(self):
@@ -109,7 +91,7 @@ class AppWindow(QMainWindow):
 
     def load_epub_from_file(self, path):
         self.book = Ebook()
-        self.title, self.cover = self.book.load_from_file(path)
+        self.book.load_from_file(path)
 
         self.ui.actionSave.setEnabled(True)
         self.ui.actionSave_as.setEnabled(True)
@@ -118,23 +100,11 @@ class AppWindow(QMainWindow):
         self.ui.novel_url.setText(self.book.source_url)
 
         self.log("File " + path + " sucesfully loaded")
+        self.book_status_update()
         self.log(self.book.status())
 
-        self.change_update_mode(True)
-
-    def change_update_mode(self, mode):
-        self.book_status_update()
-        self.update_mode = mode
-        if mode:
-            self.ui.download_button.setText("Update")
-            self.ui.download_button.clicked.disconnect()
-            self.ui.download_button.clicked.connect(self.update_button_pressed)
-        else:
-            self.ui.download_button.setText("Download")
-            self.ui.download_button.clicked.disconnect()
-            self.ui.download_button.clicked.connect(self.download_button_pressed)
-
     def log(self, p_str):
+        logging.info(p_str)
         self.ui.log.append(p_str)
 
     def book_status_update(self):
@@ -144,118 +114,91 @@ class AppWindow(QMainWindow):
             return
 
         cover = QPixmap()
-        cover.loadFromData(self.cover)
+        cover.loadFromData(self.book.cover)
         self.ui.book_cover.setPixmap(cover)
 
         self.ui.book_info.setText(self.book.status())
 
     def download_button_pressed(self):
-        url = self.ui.novel_url.text()
-        self.log("Downloading from "+url)
-
-        try:
-            self.title, self.cover, volumes_dict = download_cover(self.ui.novel_url.text())
-        except RequestException:
-            self.log("Connection error. Check if your Url is valid.")
-            return
-        except ValueError:
-            self.log("Website parsing error. Check if your Url is valid.")
-            return
-
-        self.log("Downloading book " + self.title)
-
-        for book_title, foo in volumes_dict.items():
-            self.log(book_title)
-
-        choosen_volume = choose_volume(volumes_dict)
-        if choosen_volume is None:
-            return
-
-        self.log("downloading volume: " + choosen_volume)
-        self.book = Ebook()
-        self.book.source_url = self.ui.novel_url.text()
-        self.book.init(self.title, choosen_volume, self.cover)
-
-        self.book_status_update()
-
         self.ui.download_button.setDisabled(True)
-        self.ui.stop_button.setEnabled(True)
-
-        self.downloader_thread = DownloaderThread(volumes_dict[choosen_volume])
-        self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
-        self.downloader_thread.end_of_download.connect(self.end_of_download)
-
-        self.start_progress_bar(len(volumes_dict[choosen_volume]))
-
+        url = self.ui.novel_url.text()
+        self.log("Downloading cover from " + url)
+        self.downloader_thread = CoverDownloaderThread(url)
+        self.downloader_thread.cover_download_end.connect(self.cover_retrived)
+        self.downloader_thread.connection_error.connect(self.network_error)
         self.downloader_thread.start()
 
-    def update_button_pressed(self):
+    def cover_retrived(self):
+        self.downloader_thread.cover_download_end.disconnect()
+        book_title, cover_img, volumes_dict = self.downloader_thread.get_data()
+        self.downloader_thread = None
         url = self.ui.novel_url.text()
-        self.log("Downloading from "+url)
+        self.log("Downloading book " + book_title)
 
-        try:
-            self.title, self.cover, volumes_dict = download_cover(self.ui.novel_url.text())
-        except RequestException:
-            self.log("Connection error. Check if your Url is valid.")
-            return
-        except ValueError:
-            self.log("Website parsing error. Check if your Url is valid.")
-            return
+        if self.book is None:
+            chosen_volume = choose_volume(volumes_dict)
+            if chosen_volume is None:
+                self.ui.download_button.setEnabled(True)
+                return
+            self.log("downloading volume: " + chosen_volume)
+            chapters = volumes_dict[chosen_volume]
 
-        self.log("Downloading " + self.title)
+            self.book = Ebook(book_title, chosen_volume, cover_img, url)
+            self.book_status_update()
+        else:
+            chosen_volume = self.book.volume_name
+            self.log("downloading volume: " + chosen_volume)
+            chapters = [(a, b) for a, b in volumes_dict[chosen_volume] if a not in self.book.get_titles_of_chapters()]
+            if len(chapters) == 0:
+                self.ui.download_button.setEnabled(True)
+                self.log("Book is already up-to-date")
+                return
 
-        choosen_volume = self.book.volume_name
-
-        self.log("downloading volume: " + choosen_volume)
-
-        self.ui.download_button.setDisabled(True)
         self.ui.stop_button.setEnabled(True)
 
-        chapters = volumes_dict[choosen_volume]
-
-        i = 0
-        for chapter_title, chapter_url in chapters:
-            i += 1
-            if chapter_title == self.book.get_last_chapter_title():
-                break
-        chapters = chapters[i:]
+        self.progress_bar.start(len(chapters))
 
         self.downloader_thread = DownloaderThread(chapters)
         self.downloader_thread.new_chapter.connect(self.new_chapter_downloaded)
+        self.downloader_thread.connection_error.connect(self.network_error)
         self.downloader_thread.end_of_download.connect(self.end_of_download)
-
-        self.start_progress_bar(len(chapters))
-
         self.downloader_thread.start()
 
-    def new_chapter_downloaded(self, title, text):
-        self.increment_progress_bar()
-        self.log(title)
-        self.book.add_chapter(title, text)
+    def new_chapter_downloaded(self):
+        self.progress_bar.increment_progress_bar()
 
-    def end_of_download(self, return_code):
-        if return_code == "Parsing Error" or return_code == "RequestException":
-            self.log("Something went wrong while downloading. Is url valid?")
-        elif return_code == "Stoped":
-            self.log("Downloading stopped. Please click button \'update\' to continue.")
+    def end_of_download(self):
         self.log("Download ended")
+
+        chapters = self.downloader_thread.get_data()
+        self.book.add_chapters(chapters)
+        self.downloader_thread = None
 
         self.ui.actionSave_as.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
         self.ui.download_button.setEnabled(True)
         self.ui.actionNewBook.setEnabled(True)
 
-        self.stop_progress_bar()
+        self.progress_bar.stop()
         self.log(self.book.status())
-        self.change_update_mode(True)
 
     def stop_button_pressed(self):
-        self.downloader_thread.end()
+        self.downloader_thread.new_chapter.disconnect()
+        self.downloader_thread.end_of_download.disconnect()
+        self.downloader_thread.cancel()
+        self.downloader_thread = None
+        self.book = None
+        self.book_status_update()
+        self.ui.download_button.setEnabled(True)
+        self.ui.stop_button.setDisabled(True)
+        self.progress_bar.stop()
+
+        self.log("Download Canceled")
 
     def save_to_button_pressed(self):
         dlg = QFileDialog()
         dlg.setAcceptMode(QFileDialog.AcceptSave)
-        default_name = (self.book.title+" "+self.book.volume_name)
+        default_name = (self.book.title + " " + self.book.volume_name)
         dlg.selectFile(default_name)
         dlg.setFileMode(QFileDialog.AnyFile)
         dlg.setNameFilter("eBook File (*.epub)")
@@ -266,11 +209,11 @@ class AppWindow(QMainWindow):
             if ".epub" not in path:
                 path += ".epub"
 
-            self.log("Saving file to "+path)
             try:
                 self.book.save(path)
             except OSError:
                 self.log("Saving error: No permissions")
+            self.log("Epub saved: " + path)
 
     def save_button_pressed(self):
         if self.book.file_path is None:
@@ -282,22 +225,51 @@ class AppWindow(QMainWindow):
             self.book.save(path)
         except OSError:
             self.log("Saving error: No permissions")
-        self.log("Epub saved: "+path)
+        self.log("Epub saved: " + path)
 
     def show_about(self):
         about_dialog = QMessageBox(self)
         about_dialog.setWindowTitle("About")
         about_dialog.setText(
             "<div style=\"text-align: center\">" +
-            "<p>WuxiaDownloader "+str(self.version)+"</p>" +
+            "<p>WuxiaDownloader " + str(self.version) + "</p>" +
             "<p>Created by InsoPL</p>" +
             "<p>Distributed Under MIT License</p>" +
             "<p>More info and source code avalible</p>" +
-            "<p><a href=\"https://github.com/insoPL/WuxiaDownloader\" style=\"color: #cccccc\">https://github.com/insoPL/WuxiaDownloader</a></p>"+
+            "<p><a href=\"https://github.com/insoPL/WuxiaDownloader\" style=\"color: #cccccc\">https://github.com/insoPL/WuxiaDownloader</a></p>" +
             "</div>"
         )
-
         about_dialog.show()
+
+    def network_error(self, msg):
+        if isinstance(self.downloader_thread, DownloaderThread):
+            self.downloader_thread.new_chapter.disconnect()
+            self.downloader_thread.end_of_download.disconnect()
+            self.downloader_thread.connection_error.disconnect()
+            self.progress_bar.stop()
+        elif isinstance(self.downloader_thread, CoverDownloaderThread):
+            self.downloader_thread.cover_download_end.disconnect()
+            self.downloader_thread.connection_error.disconnect()
+
+        error_dialog = QMessageBox(self)
+        error_dialog.setWindowTitle("Connection Error")
+        error_dialog.setText(
+            "<div style=\"text-align: center\">" +
+            "<p>Connection Error</p>" +
+            "<p>" + msg + "</p>" +
+            "<p>Please check if your url is valid</p>" +
+            "<p>and your internet connection</p>" +
+            "</div>"
+        )
+        error_dialog.show()
+
+        self.downloader_thread = None
+        self.book = None
+        self.book_status_update()
+        self.ui.download_button.setEnabled(True)
+        self.ui.stop_button.setDisabled(True)
+
+        self.log("Download Error: " + msg)
 
     def dragEnterEvent(self, e):
         data = e.mimeData().text()
@@ -311,7 +283,11 @@ class AppWindow(QMainWindow):
         self.log(path)
 
 
-app = QApplication(sys.argv)
-w = AppWindow(sys.argv)
-w.show()
-sys.exit(app.exec_())
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    logging.info("Initializing application")
+    app = QApplication(sys.argv)
+    w = AppWindow(sys.argv)
+    logging.info("App ready")
+    w.show()
+    sys.exit(app.exec_())

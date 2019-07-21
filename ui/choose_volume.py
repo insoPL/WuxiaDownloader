@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5.QtWidgets import QDialog
-from ui_res.choose_volume_raw import Ui_Dialog
+from ui.choose_volume_raw import Ui_Dialog
 
 
 def choose_volume(volumes_dict):
@@ -18,7 +18,7 @@ class _ChooseBookWindow(QDialog):
         self.ui.setupUi(self)
         self.ui.listWidget.addItems(titles)
         self.ui.dialogbutton.accepted.connect(self.ok_button_pressed)
-        self.item=None
+        self.item = None
 
     def ok_button_pressed(self):
         self.item = self.ui.listWidget.currentItem().text()
