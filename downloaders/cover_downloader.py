@@ -37,7 +37,7 @@ class CoverDownloaderThread(QThread):
 def _process_cover(page):
     soup = BeautifulSoup(page, 'html.parser')
 
-    book_title = soup.find('h4')
+    book_title = soup.find('h2')
     if book_title is None:
         raise ValueError
     book_title = book_title.get_text()
@@ -64,7 +64,7 @@ def _process_cover(page):
         title = title.get_text().replace("\n", "")
 
         chapter_url_list = book.find_all('li', class_='chapter-item')
-        chapter_url_list = [(chapter.getText().replace("\n", ""), chapter.a.get("href")) for chapter in
+        chapter_url_list = [(chapter.getText().replace("\n", "").strip(), chapter.a.get("href")) for chapter in
                             chapter_url_list]
 
         books[title] = chapter_url_list

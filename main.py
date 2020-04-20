@@ -10,7 +10,7 @@ from downloaders.downloader_thread import DownloaderThread
 from downloaders.update_downloader import UpdateDownloaderThread
 from epub_exporter import Ebook
 from ui.choose_volume import choose_volume
-from ui.mainwindow import Ui_MainWindow
+from generated_ui_res.mainwindow import Ui_MainWindow
 from update_window import UpdateWindow
 
 
@@ -21,7 +21,7 @@ class AppWindow(QMainWindow):
         self.ui.setupUi(self)
         self.book = None
         self.downloader_thread = None
-        self.version = 1.2
+        self.version = 1.3
 
         self.setWindowTitle("WuxiaDownloader")
 
@@ -147,7 +147,7 @@ class AppWindow(QMainWindow):
             self.book_status_update()
         else:
             chosen_volume = self.book.volume_name
-            self.log("downloading volume: " + chosen_volume)
+            self.log("updating volume: " + chosen_volume)
             chapters = [(a, b) for a, b in volumes_dict[chosen_volume] if a not in self.book.get_titles_of_chapters()]
             if len(chapters) == 0:
                 self.ui.download_button.setEnabled(True)
@@ -181,6 +181,7 @@ class AppWindow(QMainWindow):
 
         self.progress_bar.stop()
         self.log(self.book.status())
+        self.book_status_update()
 
     def stop_button_pressed(self):
         self.downloader_thread.new_chapter.disconnect()

@@ -14,15 +14,6 @@ For program to compile you need following libraries:
 * [ebooklib](https://github.com/aerkalov/ebooklib)
 * [Reqests](http://docs.python-requests.org/en/master/)
 
-## Compiling
-
-Before running program you need to compile resource and ui files using pyuic:
-
-```
-pyuic5 --from-imports ui\mainwindow.ui > ui_res\mainwindow.py
-pyuic5 --from-imports ui\choose_volume_raw.ui > ui_res\choose_volume_raw.py
-pyrcc5 ui\resources.qrc > ui_res\resources_rc.py
-```
 
 ## Creating single executable file
 

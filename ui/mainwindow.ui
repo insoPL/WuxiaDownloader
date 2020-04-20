@@ -1443,7 +1443,7 @@ QDateEdit::down-arrow:focus {
   <customwidget>
    <class>DownloadProgressBar</class>
    <extends>QProgressBar</extends>
-   <header>.download_progress_bar</header>
+   <header>ui.download_progress_bar</header>
   </customwidget>
  </customwidgets>
  <resources>
