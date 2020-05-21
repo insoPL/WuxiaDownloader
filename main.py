@@ -149,10 +149,11 @@ class AppWindow(QMainWindow):
             chosen_volume = self.book.volume_name
             self.log("updating volume: " + chosen_volume)
             chapters = [(a, b) for a, b in volumes_dict[chosen_volume] if a not in self.book.get_titles_of_chapters()]
-            if len(chapters) == 0:
-                self.ui.download_button.setEnabled(True)
-                self.log("Book is already up-to-date")
-                return
+
+        if len(chapters) == 0:
+            self.ui.download_button.setEnabled(True)
+            self.log("Book is already up-to-date")
+            return
 
         self.ui.stop_button.setEnabled(True)
 

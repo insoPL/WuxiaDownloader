@@ -19,7 +19,7 @@ class DownloaderThread(QThread):
         QThread.__init__(self)
 
     def run(self):
-        list_of_qurls = [QUrl("https://www.wuxiaworld.com"+chapter_url) for chapter_url in self.list_of_urls]
+        list_of_qurls = [QUrl("https://www.wuxiaworld.com" + chapter_url) for chapter_url in self.list_of_urls]
         for chapter_title, qurl in zip(self.list_of_chapter_titles, list_of_qurls):
             downloader = UniversalDownloaderThread(qurl, self._network_manager, _parse_chapter)
             downloader.connection_error.connect(self.connection_error)
@@ -52,7 +52,7 @@ def _parse_chapter(page):
     if len(page) == 0:
         raise ValueError
 
-    soup = BeautifulSoup(page, 'html.parser')
+    soup = BeautifulSoup(page.data(), 'html.parser')
 
     article = soup.find_all('div', class_='fr-view')[-1]
     if article is None:

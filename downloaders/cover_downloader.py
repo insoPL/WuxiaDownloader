@@ -35,7 +35,7 @@ class CoverDownloaderThread(QThread):
 
 
 def _process_cover(page):
-    soup = BeautifulSoup(page, 'html.parser')
+    soup = BeautifulSoup(page.data(), 'html.parser')
 
     book_title = soup.find('h2')
     if book_title is None:
