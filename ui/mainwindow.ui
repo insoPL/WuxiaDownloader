@@ -1284,6 +1284,13 @@ QDateEdit::down-arrow:focus {
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QPushButton" name="update_button">
+        <property name="text">
+         <string>Update</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
@@ -1344,6 +1351,13 @@ QDateEdit::down-arrow:focus {
       </item>
       <item>
        <widget class="DownloadProgressBar" name="downloadprogressbar"/>
+      </item>
+      <item>
+       <widget class="QPushButton" name="save_button">
+        <property name="text">
+         <string>Save</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
