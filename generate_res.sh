@@ -1,3 +1,5 @@
+#!/bin/sh
+
 rm -r generated_ui_res
 mkdir generated_ui_res
 pyuic5 --from-imports ui/mainwindow.ui > generated_ui_res/mainwindow.py
