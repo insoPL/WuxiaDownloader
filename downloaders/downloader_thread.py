@@ -54,7 +54,7 @@ def _parse_chapter(page):
 
     soup = BeautifulSoup(page.data(), 'html.parser')
 
-    article = soup.find_all('div', class_='fr-view')[-1]
+    article = soup.find_all('div', class_='fr-view')[0]
     if article is None:
         raise ValueError
 

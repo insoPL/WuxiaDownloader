@@ -50,4 +50,8 @@ coll = COLLECT(exe,
 app = BUNDLE(coll,
              name='WuxiaDownloader.app',
              icon=icon_path,
-             bundle_identifier = 'com.insopl.wuxiadownloader' )
+             bundle_identifier = 'com.insopl.wuxiadownloader',
+             info_plist={
+                'NSHighResolutionCapable': 'True'
+                }
+            )

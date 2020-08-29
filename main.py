@@ -26,7 +26,9 @@ class AppWindow(QMainWindow):
         self.setWindowTitle("WuxiaDownloader")
 
         self.ui.download_button.clicked.connect(self.download_button_pressed)
+        self.ui.update_button.clicked.connect(self.update_button_pressed)
         self.ui.actionSave.triggered.connect(self.save_button_pressed)
+        self.ui.save_button.clicked.connect(self.save_to_button_pressed)
         self.ui.actionSave_as.triggered.connect(self.save_to_button_pressed)
         self.ui.actionopen_epub_file.triggered.connect(self.open_epub_button_pressed)
         self.ui.stop_button.clicked.connect(self.stop_button_pressed)
@@ -40,6 +42,9 @@ class AppWindow(QMainWindow):
         self.ui.actionExit.setShortcut('Ctrl+E')
         self.ui.actionSave.setShortcut('Ctrl+S')
         self.ui.actionopen_epub_file.setShortcut('Ctrl+O')
+
+        self.ui.save_button.setDisabled(True)
+        self.ui.update_button.setDisabled(True)
 
         self.progress_bar = self.ui.downloadprogressbar
 
@@ -119,14 +124,20 @@ class AppWindow(QMainWindow):
 
         self.ui.book_info.setText(self.book.status())
 
-    def download_button_pressed(self):
+    def update_button_pressed(self):
         self.ui.download_button.setDisabled(True)
+        self.ui.update_button.setDisabled(True)
+        self.ui.save_button.setDisabled(True)
         url = self.ui.novel_url.text()
         self.log("Downloading cover from " + url)
         self.downloader_thread = CoverDownloaderThread(url)
         self.downloader_thread.cover_download_end.connect(self.cover_retrived)
         self.downloader_thread.connection_error.connect(self.network_error)
         self.downloader_thread.start()
+
+    def download_button_pressed(self):
+        self.book = None
+        self.update_button_pressed()
 
     def cover_retrived(self):
         self.downloader_thread.cover_download_end.disconnect()
@@ -139,6 +150,8 @@ class AppWindow(QMainWindow):
             chosen_volume = choose_volume(volumes_dict)
             if chosen_volume is None:
                 self.ui.download_button.setEnabled(True)
+                self.ui.update_button.setEnabled(True)
+                self.ui.save_button.setEnabled(True)
                 return
             self.log("downloading volume: " + chosen_volume)
             chapters = volumes_dict[chosen_volume]
@@ -152,6 +165,8 @@ class AppWindow(QMainWindow):
 
         if len(chapters) == 0:
             self.ui.download_button.setEnabled(True)
+            self.ui.update_button.setEnabled(True)
+            self.ui.save_button.setEnabled(True)
             self.log("Book is already up-to-date")
             return
 
@@ -178,7 +193,9 @@ class AppWindow(QMainWindow):
         self.ui.actionSave_as.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
         self.ui.download_button.setEnabled(True)
+        self.ui.update_button.setEnabled(True)
         self.ui.actionNewBook.setEnabled(True)
+        self.ui.save_button.setEnabled(True)
 
         self.progress_bar.stop()
         self.log(self.book.status())
@@ -192,6 +209,7 @@ class AppWindow(QMainWindow):
         self.book = None
         self.book_status_update()
         self.ui.download_button.setEnabled(True)
+        self.ui.update_button.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
         self.progress_bar.stop()
 
@@ -270,6 +288,7 @@ class AppWindow(QMainWindow):
         self.book_status_update()
         self.ui.download_button.setEnabled(True)
         self.ui.stop_button.setDisabled(True)
+        self.ui.update_button.setEnabled(True)
 
         self.log("Download Error: " + msg)
 
