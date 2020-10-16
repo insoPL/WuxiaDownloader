@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 
 from downloaders.universal_downloader import UniversalDownloaderThread
 
-
 class DownloaderThread(QThread):
     end_of_download = pyqtSignal()
     new_chapter = pyqtSignal()
@@ -53,29 +52,37 @@ def _parse_chapter(page):
         raise ValueError
 
     soup = BeautifulSoup(page.data(), 'html.parser')
+    texts = []
+    listFrView = soup.find_all('div', class_='fr-view')
 
-    article = soup.find_all('div', class_='fr-view')[0]
-    if article is None:
-        raise ValueError
+    for article in listFrView:
+        if article is None:
+            raise ValueError
 
-    content = list()
+        content = list()
 
-    all_verses = article.find_all('p')
-    if all_verses is None:
-        raise ValueError
+        all_verses = article.find_all('p')
+        if all_verses is None:
+            raise ValueError
 
-    if "chapter" in all_verses[0].text.lower():  # if first verse contains word "chapter" delete it
-        all_verses = all_verses[1:]
+        if "chapter" in all_verses[0].text.lower():  # if first verse contains word "chapter" delete it
+            all_verses = all_verses[1:]
 
-    for art in all_verses:
-        foo = art.get_text()
-        if len(foo) < 1:
-            continue
-        if "chapter" in foo.lower():
-            continue
-        content.append(foo)
+        for art in all_verses:
+            foo = art.get_text()
+            if len(foo) < 1:
+                continue
+            if "chapter" in foo.lower():
+                continue
+            content.append(foo)
 
-    text = ['<p>' + foo + '</p>' for foo in content]
-    text = ''.join(text)
+        text = ['<p>' + foo + '</p>' for foo in content]
+        text = ''.join(text)
+        texts.append(text)
+    
+    maxIndex = 0
+    for i in range(1,len(texts)):
+        if(len(texts[i]) > len(texts[maxIndex])):
+            maxIndex = i
 
-    return text
+    return texts[maxIndex]
